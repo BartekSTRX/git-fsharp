@@ -1,4 +1,5 @@
 ﻿open GitLib
+open GitLib.Models
 
 [<EntryPoint>]
 let main argv =
@@ -22,10 +23,10 @@ let main argv =
     | [| "init" |] -> 
         Commands.init(dir)
     | [| "hash-object"; relativePath |] -> 
-        Commands.hashObject dir dir relativePath false
-        |> printf "%s"
+        let (Sha1 hash) = Commands.hashObject dir dir relativePath false
+        printf "%s" hash
     | [| "hash-object"; "-w"; relativePath |] -> 
-        let hash = Commands.hashObject dir dir relativePath true
+        let (Sha1 hash) = Commands.hashObject dir dir relativePath true
         printf "%s" hash
     | [| "cat-file"; option; hash |] ->
         Commands.catFiles dir option hash

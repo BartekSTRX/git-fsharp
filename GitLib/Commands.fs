@@ -36,7 +36,7 @@ ignorecase = true
     File.WriteAllText(headPath, defaultHead)
 
 
-let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (write: bool) : string = 
+let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (write: bool) : Sha1 = 
     let objectPath = Path.Combine(currentDir, relativePath)
 
     let content = File.ReadAllBytes(objectPath)
@@ -44,27 +44,26 @@ let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (wr
     let wrappedObject = gitObject |> GitObjects.wrap
 
     let hash = wrappedObject |> Hash.sha1Bytes
-    let chars =
-        hash 
-        |> Array.collect (fun x -> 
-            [| (x &&& byte(0b11110000)) >>> 4; x &&& byte(0b00001111) |])
-        |> Array.map (sprintf "%x")
-        
-    let hashStr = String.Join("", chars)
-
+    
     if write then 
-        Storage.writeObjectContent rootDir hashStr wrappedObject
+        Storage.writeObjectContent rootDir hash wrappedObject
 
-    hashStr
+    hash
 
-let catFiles (rootDir: string) (option: string) (hash: string) : string = 
-    let object = Storage.readObject rootDir hash
-    let unwrapped = GitObjects.unwrap object.Content
-    match unwrapped with 
-        | Ok result -> 
-            match option with 
-            | "-t" -> sprintf "%s" (result.ObjectType |> ObjectTypes.toStr)
-            | "-s" -> sprintf "%i" result.Size
-            | "-p" -> sprintf "%s" (result.Object |> Encoding.UTF8.GetString)
-            | _ -> failwith "incorrect cat-files option"
-        | Error reason -> failwith reason
+let catFiles (rootDir: string) (option: string) (objectId: string) : string = 
+    Hash.parse objectId
+    |> Result.bind (
+        fun hash -> 
+            let object = Storage.readObject rootDir hash
+            let unwrapped = GitObjects.unwrap object.Content
+            unwrapped)
+    |> Result.map (fun result -> 
+        match option with 
+        | "-t" -> sprintf "%s" (result.ObjectType |> ObjectTypes.toStr)
+        | "-s" -> sprintf "%i" result.Size
+        | "-p" -> sprintf "%s" (result.Object |> Encoding.UTF8.GetString)
+        | _ -> failwith "incorrect cat-files option")
+    |> (fun result ->
+            match result with 
+            | Ok str -> str
+            | Error reason -> failwith reason)

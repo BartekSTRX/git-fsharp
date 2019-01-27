@@ -56,6 +56,42 @@ module GitObjects =
                     Object = Array.sub content (firstNull + 1) (actualLength)
                 })
 
+type Sha1 = Sha1 of string
+
+module Hash = 
+    open System
+    open System.Security.Cryptography
+    open GitObjects
+
+    let private toStr (bytes: byte[]) : string= 
+        let chars = 
+            bytes 
+            |> Array.collect (fun x -> 
+                [| 
+                    (x &&& byte(0b11110000)) >>> 4; 
+                    x &&& byte(0b00001111) 
+                |])
+            |> Array.map (sprintf "%x")
+        String.Join("", chars)
+
+    let sha1Bytes (object: byte array) = 
+        let sha = new SHA1CryptoServiceProvider()
+        object |> sha.ComputeHash |> toStr |> Sha1
+        
+    let sha1Object = wrap >> sha1Bytes
+
+    let split (Sha1 hash) = 
+        hash.Substring(0, 2), hash.Substring(2)
+
+    let parse (str: string) =
+        let isHex (c: char) = "1234567890abcdefABCDEF".Contains(c)
+
+        if str.Length <> 40 then
+            Error "hash lenght different than 40 characters"
+        elif str.ToCharArray() |> Array.forall isHex |> not then
+            Error "hash contains non-hexadecimal character"
+        else 
+            Ok (Sha1 str)
 
 type ObjectFormat = Deflated | Wrapped | Content
 
@@ -69,17 +105,14 @@ module Storage =
     open System.IO.Compression
     open Ionic.Zlib
 
-    let private splitHash (objectId: string) = 
-        objectId.Substring(0, 2), objectId.Substring(2)
-
-    let private readObjectLoose (rootDir: string) (objectId: string) =
-        let id1, id2 = splitHash objectId
+    let private readObjectLoose (rootDir: string) (objectId: Sha1) =
+        let id1, id2 = Hash.split objectId
         let objectPath = Path.Combine(rootDir, ".git", "objects", id1, id2)
         let fileStream = File.OpenRead(objectPath)
         (fileStream, Deflated)
         
     // no support for packfiles for now
-    let readObject (rootDir: string) (objectId: string) (*(format: ObjectFormat)*) = 
+    let readObject (rootDir: string) (objectId: Sha1) (*(format: ObjectFormat)*) = 
         let (fileStream, format) = readObjectLoose rootDir objectId
         
         use gzipStream = new ZlibStream(fileStream, CompressionMode.Decompress)
@@ -88,8 +121,8 @@ module Storage =
 
         { Format = format; Content = memoryStream.ToArray() }
 
-    let writeObjectContent (rootDir: string) (objectId: string) (content: byte array) =
-        let id1, id2 = splitHash objectId
+    let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) =
+        let id1, id2 = Hash.split objectId
         let path = Path.Combine(rootDir, ".git", "objects", id1, id2)
 
         use memoryStream = new MemoryStream(content)
@@ -99,14 +132,3 @@ module Storage =
         fileInfo.Directory.Create()
         use fileStream = File.OpenWrite(fileInfo.FullName)
         gzipStream.CopyTo(fileStream)
-
-
- module Hash = 
-    open GitObjects
-    open System.Security.Cryptography
-
-    let sha1Bytes (object: byte array) : byte array = 
-        let sha = new SHA1CryptoServiceProvider()
-        object |> sha.ComputeHash
-        
-    let sha1Object = wrap >> sha1Bytes

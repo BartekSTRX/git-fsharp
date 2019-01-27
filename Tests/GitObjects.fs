@@ -37,5 +37,5 @@ let ``Hash blob object`` () =
     let rootDir = Directory.GetCurrentDirectory()
     let path = Path.Combine("TestData", "SampleTextFile.txt")
 
-    let hash = Commands.hashObject rootDir path
+    let (Sha1 hash) = Commands.hashObject rootDir rootDir path false
     Assert.Equal("26896bbf9c17fd5475973450ec83f7d8d84575bb", hash)
