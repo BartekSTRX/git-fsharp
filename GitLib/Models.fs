@@ -17,7 +17,7 @@ module ObjectTypes =
 
 type GitObject = {
     ObjectType: ObjectType
-    Object: string
+    Object: byte array
 }
 with 
     member this.Size = this.Object.Length
@@ -25,31 +25,35 @@ with
 module GitObjects =
     open System
     open ObjectTypes
+    open System.Text
 
-    let wrap { ObjectType = objectType; Object = object }: string =
-        let header = sprintf "%s %i%c" (toStr objectType) (object.Length) (Convert.ToChar(0))
-        let content = sprintf "%s%s" header object
-        content
+    let wrap { ObjectType = objectType; Object = object }: byte array =
+        let headerStr = sprintf "%s %i%c" (toStr objectType) (object.Length) (Convert.ToChar(0))
+        let headerEncoded = headerStr |> Encoding.UTF8.GetBytes
+        Array.concat [headerEncoded; object]
     
-    let unwrap (content: string): Result<GitObject, string> =
-        let firstSpace = content.IndexOf(' ')
-        let nullChar = Convert.ToChar(0)
-        let firstNull = content.IndexOf(nullChar)
+    let unwrap (content: byte array): Result<GitObject, string> =
+        let spaceChar = Convert.ToByte(' ')
+        let firstSpace = Array.IndexOf(content, spaceChar)
+        let nullChar = Convert.ToChar(0) |> Convert.ToByte
+        let firstNull = Array.IndexOf(content, nullChar)
         
-        let objectType = content.Substring(0, firstSpace)
-        let objectLength = content.Substring(firstSpace + 1, firstNull - (firstSpace + 1))
+        let objectType = Array.sub content 0 firstSpace
+        let objectLength = Array.sub content (firstSpace + 1)  (firstNull - (firstSpace + 1))
         
+        let encodedType = fromStr (Encoding.UTF8.GetString(objectType))
+        let encodedLength = Int32.Parse(Encoding.UTF8.GetString(objectLength))
+
         let actualLength = content.Length - (firstNull + 1)
-        let encodedLength = Int32.Parse(objectLength)
 
         if encodedLength <> actualLength then 
             Result.Error "incorrect git object length"
         else
-            fromStr objectType
+            encodedType
             |> Result.map (fun x -> 
                 {
                     ObjectType = x
-                    Object = content.Substring(firstNull + 1)
+                    Object = Array.sub content (firstNull + 1) (actualLength)
                 })
 
 
@@ -83,13 +87,12 @@ module Storage =
  module Hash = 
     open GitObjects
     open System.Security.Cryptography
-    open System.Text
 
-    let sha1Bytes (object: byte array) = 
+    let sha1Bytes (object: byte array) : byte array = 
         let sha = new SHA1CryptoServiceProvider()
         object |> sha.ComputeHash
 
-    let sha1String (object: string) = 
-        object |> Encoding.Unicode.GetBytes |> sha1Bytes
+    //let sha1String (object: string) = 
+    //    object |> Encoding.UTF8.GetBytes |> sha1Bytes
         
-    let sha1Object = wrap >> sha1String 
+    let sha1Object = wrap >> sha1Bytes

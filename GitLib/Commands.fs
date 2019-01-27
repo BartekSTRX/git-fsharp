@@ -36,18 +36,17 @@ ignorecase = true
     File.WriteAllText(headPath, defaultHead)
 
 
-let hashObject (currentDir: string) (relativePath: string): unit = 
+let hashObject (currentDir: string) (relativePath: string): string = 
     let objectPath = Path.Combine(currentDir, relativePath)
-    let content = File.ReadAllBytes(objectPath)
 
-    let hash = content |> Hash.sha1Bytes
+    let content = File.ReadAllBytes(objectPath)
+    let gitObject = { ObjectType = Blob; Object = content }
+
+    let hash = gitObject |> Hash.sha1Object
     let chars =
         hash 
         |> Array.collect (fun x -> 
             [| (x &&& byte(0b11110000)) >>> 4; x &&& byte(0b00001111) |])
-        |> Array.map (sprintf "%X")
+        |> Array.map (sprintf "%x")
         
-
     String.Join("", chars)
-//    |> Encoding.Unicode.GetString
-    |> printf "%s"

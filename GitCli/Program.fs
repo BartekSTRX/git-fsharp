@@ -1,16 +1,20 @@
-﻿open System
-open GitLib
-open System.IO
+﻿open GitLib
 
 [<EntryPoint>]
 let main argv =
-    let dir = Directory.GetCurrentDirectory()
+    //let dir = Directory.GetCurrentDirectory()
 
-    Commands.hashObject dir "GitCli.runtimeconfig.json"
+    let dir = @"C:\Users\LAPPEK4\Documents\heh2"
+    //let filename = "aaa.txt"
+
+    //let hash = Commands.hashObject dir filename
 
     match argv with 
-    | [| "init" |] -> Commands.init(dir)
-    | [| "hash-object"; relativePath |] -> Commands.hashObject dir relativePath
+    | [| "init" |] -> 
+        Commands.init(dir)
+    | [| "hash-object"; relativePath |] -> 
+        Commands.hashObject dir relativePath
+        |> printf "%s"
     | _ -> printf "incorrect args %A" argv
 
     0
