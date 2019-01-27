@@ -1,9 +1,9 @@
 module GitLib.Commands
 
+open System
 open System.IO
 open GitLib.Models
 open System.Text
-open System
 
 let init (rootDir: string) =
     let gitDir = Path.Combine(rootDir, ".git")
@@ -50,3 +50,15 @@ let hashObject (currentDir: string) (relativePath: string): string =
         |> Array.map (sprintf "%x")
         
     String.Join("", chars)
+
+let catFiles (rootDir: string) (option: string) (hash: string) : string = 
+    let object = Storage.readObject rootDir hash
+    let unwrapped = GitObjects.unwrap object.Content
+    match unwrapped with 
+        | Ok result -> 
+            match option with 
+            | "-t" -> sprintf "%s" (result.ObjectType |> ObjectTypes.toStr)
+            | "-s" -> sprintf "%i" result.Size
+            | "-p" -> sprintf "%s" (result.Object |> Encoding.UTF8.GetString)
+            | _ -> failwith "incorrect cat-files option"
+        | Error reason -> failwith reason

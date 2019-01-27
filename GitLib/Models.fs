@@ -61,7 +61,7 @@ type ObjectFormat = Deflated | Wrapped | Content
 
 type ReadObject = {
     Format: ObjectFormat
-    Content: string
+    Content: byte[]
 }
 
 module Storage =
@@ -69,19 +69,21 @@ module Storage =
     open System.IO.Compression
     open Ionic.Zlib
 
-    let private readObjectLoose (gitDir: string) (objectId: string) =
+    let private readObjectLoose (rootDir: string) (objectId: string) =
         let id1, id2 = objectId.Substring(0, 2), objectId.Substring(2)
-        let objectPath = Path.Combine(gitDir, "objects", id1, id2)
+        let objectPath = Path.Combine(rootDir, ".git", "objects", id1, id2)
         let fileStream = File.OpenRead(objectPath)
         (fileStream, Deflated)
         
     // no support for packfiles for now
-    let readObject (gitDir: string) (objectId: string) (format: ObjectFormat) = 
-        let (fileStream, format) = readObjectLoose gitDir objectId
+    let readObject (rootDir: string) (objectId: string) (*(format: ObjectFormat)*) = 
+        let (fileStream, format) = readObjectLoose rootDir objectId
         
         use gzipStream = new ZlibStream(fileStream, CompressionMode.Decompress)
-        use reader = new StreamReader(gzipStream)
-        { Format = format; Content = reader.ReadToEnd() }
+        use memoryStream = new MemoryStream()
+        gzipStream.CopyTo(memoryStream)
+
+        { Format = format; Content = memoryStream.ToArray() }
 
 
  module Hash = 
