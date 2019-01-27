@@ -9,29 +9,31 @@ module ObjectTypes =
         | Commit -> "commit"
 
     let fromStr = function
-        | "blob" -> Blob
-        | "tree" -> Tree
-        | "commit" -> Commit
-        | _ -> failwith "incorrect git object type"
+        | "blob" -> Result.Ok Blob
+        | "tree" -> Result.Ok Tree
+        | "commit" -> Result.Ok Commit
+        | _ -> Result.Error "incorrect git object type"
 
 
 type GitObject = {
-    objectType: ObjectType
-    object: string
+    ObjectType: ObjectType
+    Object: string
 }
+with 
+    member this.Size = this.Object.Length
 
 module GitObjects =
     open System
     open ObjectTypes
 
-    let wrap { objectType = objectType; object = object }: string =
-        let header = sprintf "%s %i\0" (toStr objectType) (object.Length)
+    let wrap { ObjectType = objectType; Object = object }: string =
+        let header = sprintf "%s %i%c" (toStr objectType) (object.Length) (Convert.ToChar(0))
         let content = sprintf "%s%s" header object
         content
     
-    let unwrap (content: string): GitObject =
+    let unwrap (content: string): Result<GitObject, string> =
         let firstSpace = content.IndexOf(' ')
-        let nullChar: char = Convert.ToChar(0)
+        let nullChar = Convert.ToChar(0)
         let firstNull = content.IndexOf(nullChar)
         
         let objectType = content.Substring(0, firstSpace)
@@ -40,13 +42,15 @@ module GitObjects =
         let actualLength = content.Length - (firstNull + 1)
         let encodedLength = Int32.Parse(objectLength)
 
-        //if encodedLength <> actualLength then 
-        //    failwith "incorrect git object"
-        //else
-        {
-            objectType = fromStr objectType
-            object = content.Substring(firstNull + 1)
-        }
+        if encodedLength <> actualLength then 
+            Result.Error "incorrect git object length"
+        else
+            fromStr objectType
+            |> Result.map (fun x -> 
+                {
+                    ObjectType = x
+                    Object = content.Substring(firstNull + 1)
+                })
 
 
 type ObjectFormat = Deflated | Wrapped | Content
@@ -75,3 +79,17 @@ module Storage =
         use reader = new StreamReader(gzipStream)
         { Format = format; Content = reader.ReadToEnd() }
 
+
+ module Hash = 
+    open GitObjects
+    open System.Security.Cryptography
+    open System.Text
+
+    let sha1Bytes (object: byte array) = 
+        let sha = new SHA1CryptoServiceProvider()
+        object |> sha.ComputeHash
+
+    let sha1String (object: string) = 
+        object |> Encoding.Unicode.GetBytes |> sha1Bytes
+        
+    let sha1Object = wrap >> sha1String 

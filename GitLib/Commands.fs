@@ -1,10 +1,12 @@
 module GitLib.Commands
 
 open System.IO
+open GitLib.Models
+open System.Text
+open System
 
-let init () =
-    let dir = Directory.GetCurrentDirectory()
-    let gitDir = Path.Combine(dir, ".git")
+let init (rootDir: string) =
+    let gitDir = Path.Combine(rootDir, ".git")
 
     let folders = [
         "hooks";
@@ -34,3 +36,18 @@ ignorecase = true
     File.WriteAllText(headPath, defaultHead)
 
 
+let hashObject (currentDir: string) (relativePath: string): unit = 
+    let objectPath = Path.Combine(currentDir, relativePath)
+    let content = File.ReadAllBytes(objectPath)
+
+    let hash = content |> Hash.sha1Bytes
+    let chars =
+        hash 
+        |> Array.collect (fun x -> 
+            [| (x &&& byte(0b11110000)) >>> 4; x &&& byte(0b00001111) |])
+        |> Array.map (sprintf "%X")
+        
+
+    String.Join("", chars)
+//    |> Encoding.Unicode.GetString
+    |> printf "%s"
