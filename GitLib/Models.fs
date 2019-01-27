@@ -69,8 +69,11 @@ module Storage =
     open System.IO.Compression
     open Ionic.Zlib
 
+    let private splitHash (objectId: string) = 
+        objectId.Substring(0, 2), objectId.Substring(2)
+
     let private readObjectLoose (rootDir: string) (objectId: string) =
-        let id1, id2 = objectId.Substring(0, 2), objectId.Substring(2)
+        let id1, id2 = splitHash objectId
         let objectPath = Path.Combine(rootDir, ".git", "objects", id1, id2)
         let fileStream = File.OpenRead(objectPath)
         (fileStream, Deflated)
@@ -85,6 +88,18 @@ module Storage =
 
         { Format = format; Content = memoryStream.ToArray() }
 
+    let writeObjectContent (rootDir: string) (objectId: string) (content: byte array) =
+        let id1, id2 = splitHash objectId
+        let path = Path.Combine(rootDir, ".git", "objects", id1, id2)
+
+        use memoryStream = new MemoryStream(content)
+        use gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
+
+        let fileInfo = new FileInfo(path)
+        fileInfo.Directory.Create()
+        use fileStream = File.OpenWrite(fileInfo.FullName)
+        gzipStream.CopyTo(fileStream)
+
 
  module Hash = 
     open GitObjects
@@ -93,8 +108,5 @@ module Storage =
     let sha1Bytes (object: byte array) : byte array = 
         let sha = new SHA1CryptoServiceProvider()
         object |> sha.ComputeHash
-
-    //let sha1String (object: string) = 
-    //    object |> Encoding.UTF8.GetBytes |> sha1Bytes
         
     let sha1Object = wrap >> sha1Bytes

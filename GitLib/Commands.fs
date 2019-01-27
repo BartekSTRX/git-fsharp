@@ -36,20 +36,26 @@ ignorecase = true
     File.WriteAllText(headPath, defaultHead)
 
 
-let hashObject (currentDir: string) (relativePath: string): string = 
+let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (write: bool) : string = 
     let objectPath = Path.Combine(currentDir, relativePath)
 
     let content = File.ReadAllBytes(objectPath)
     let gitObject = { ObjectType = Blob; Object = content }
+    let wrappedObject = gitObject |> GitObjects.wrap
 
-    let hash = gitObject |> Hash.sha1Object
+    let hash = wrappedObject |> Hash.sha1Bytes
     let chars =
         hash 
         |> Array.collect (fun x -> 
             [| (x &&& byte(0b11110000)) >>> 4; x &&& byte(0b00001111) |])
         |> Array.map (sprintf "%x")
         
-    String.Join("", chars)
+    let hashStr = String.Join("", chars)
+
+    if write then 
+        Storage.writeObjectContent rootDir hashStr wrappedObject
+
+    hashStr
 
 let catFiles (rootDir: string) (option: string) (hash: string) : string = 
     let object = Storage.readObject rootDir hash
