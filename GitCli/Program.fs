@@ -1,5 +1,5 @@
 ﻿open GitLib
-open System.IO
+open GitLib.Commands
 
 [<EntryPoint>]
 let main argv =
@@ -10,22 +10,28 @@ let main argv =
     // read-tree --prefix=bak
     // commit-tree
 
-    let dir = Directory.GetCurrentDirectory()
+    //let dir = Directory.GetCurrentDirectory()
+    let dir = "C:\Users\LAPPEK4\Documents\heh2"
 
-    //let hash = "acbe86c7c89586e0912a0a851bacf309c595c308"
-    //for option in ["-t"; "-s"; "-p"] do
-    //    Commands.catFiles dir option hash
-    //        |> printf "%s"
+    let argsList = argv |> List.ofArray
 
-    match argv with 
-    | [| "init" |] -> 
+    match argsList with 
+    | ["init"] -> 
         Commands.init(dir)
-    | [| "hash-object"; relativePath |] -> 
+    | ["hash-object"; relativePath] -> 
         Commands.hashObject dir dir relativePath false
-    | [| "hash-object"; "-w"; relativePath |] -> 
+    | ["hash-object"; "-w"; relativePath] -> 
         Commands.hashObject dir dir relativePath true
-    | [| "cat-file"; option; hash |] ->
+    | ["cat-file"; option; hash] ->
         Commands.catFiles dir option hash
+    | ["ls-files"] ->
+        Commands.lsFiles dir LsFileFormat.Default
+    | ["ls-files"; "-s"] ->
+        Commands.lsFiles dir LsFileFormat.ShowObjectNames
+    | ["update-index"; "--add"; "--cacheinfo"; mode; hash; filePath] ->
+        ()
+    | ["write-tree"] ->
+        ()
     | _ -> printf "incorrect args %A" argv
 
     0

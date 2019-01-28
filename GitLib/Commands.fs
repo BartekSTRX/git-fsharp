@@ -52,6 +52,7 @@ let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (wr
     let (Sha1 objectId) = hash
     objectId |> printf "%s"
 
+// for now works only with blobs
 let catFiles (rootDir: string) (option: string) (objectId: string) : unit = 
     objectId
     |> Hash.parse
@@ -68,3 +69,35 @@ let catFiles (rootDir: string) (option: string) (objectId: string) : unit =
     |> (function 
         | Ok str -> str |> printf "%s"
         | Error err -> printf "%s" err)
+
+
+type LsFileFormat = Default | ShowObjectNames
+
+let private formatEntryShowNames (entry: GitIndexEntry) = 
+    let {
+        Mode = mode; 
+        Hash = Sha1 id; 
+        Flags = { Stage = stage }; 
+        RelativeFilePath = path 
+        } = entry
+    sprintf "%i %s %i %s\n" mode id stage path
+
+let private formatEntryDefault ({ RelativeFilePath = path }) =
+    sprintf "%s\n" path
+
+let private formatEntries entries format =
+    let formatFun =
+        match format with 
+        | Default -> formatEntryDefault
+        | ShowObjectNames -> formatEntryShowNames
+    List.map formatFun entries 
+
+// ls-files should list files from index and form working tree
+let lsFiles (rootDir: string) (format: LsFileFormat) =
+    Storage.readIndex rootDir
+    |> Result.map(fun index -> formatEntries index.Entries format)
+    |> Result.map (fun xs -> String.Join("", xs) )
+    |> (function 
+        | Ok str -> str |> printf "%s"
+        | Error err -> printf "%s" err)
+    

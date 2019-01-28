@@ -66,7 +66,7 @@ module Hash =
     open System.Security.Cryptography
     open GitObjects
 
-    let private toStr = 
+    let fromByteArray = 
         Array.collect (fun (x: byte) -> 
         [| 
             (x &&& byte(0b11110000)) >>> 4; 
@@ -74,10 +74,11 @@ module Hash =
         |])
         >> Array.map (sprintf "%x")
         >> (fun chars -> String.Join("", chars))
+        >> Sha1
 
     let sha1Bytes (object: byte array) = 
         let sha = new SHA1CryptoServiceProvider()
-        object |> sha.ComputeHash |> toStr |> Sha1
+        object |> sha.ComputeHash |> fromByteArray
         
     let sha1Object = wrap >> sha1Bytes
 
@@ -94,6 +95,106 @@ module Hash =
         else 
             Ok (Sha1 str)
 
+
+type IndexEntryStage = int
+
+type IndexEntryFlags = {
+    AssumeValid: bool
+    Extended: bool
+    Stage: IndexEntryStage
+    NameLength: int
+}
+
+type GitIndexEntry = {
+    Ctime: byte[]
+    Mtime: byte[]
+    Device: uint32
+    Inode: uint32
+    Mode: uint32
+    UserId: uint32
+    GroupId: uint32
+    FileSize: uint32
+    Hash: Sha1
+    Flags: IndexEntryFlags
+    RelativeFilePath: string
+}
+
+type GitIndex = {
+    Entries: GitIndexEntry list
+}
+
+module GitIndexes = 
+    open System
+    open System.IO
+    open System.Text
+    
+    // TODO
+    let private parseFlags (arr: byte[]): IndexEntryFlags =
+        // 1 assume valid
+        // 1 extended - must be 0 in version 2
+        // 2 stage
+        // 12 name length if less than FFF or FFF if longer
+        {
+            AssumeValid = true
+            Extended = true
+            Stage = 2 //true, true
+            NameLength = 42
+        }
+    
+    let private readUInt32LE (reader: BinaryReader): uint32 =
+        let bytes = reader.ReadBytes(4) |> Array.rev
+        BitConverter.ToUInt32(bytes, 0)
+
+    let private readFileName (reader: BinaryReader): string =
+        let mutable arr = []
+        let mutable c: byte = reader.ReadByte()
+
+        while c <> 0uy do
+            arr <- c :: arr
+            c <- reader.ReadByte()
+        
+        // read null bytes used for padding (padded to multiply of 8)
+        // ugly and hacky solution
+        while c = 0uy do
+            c <- reader.ReadByte()
+        reader.BaseStream.Position <- reader.BaseStream.Position - 1L;
+
+        arr |> Array.ofList |> Array.rev |> Encoding.UTF8.GetString
+
+    let private parseEntry (reader: BinaryReader) = 
+        {
+            Ctime = reader.ReadBytes(8)
+            Mtime = reader.ReadBytes(8)
+            Device = readUInt32LE reader
+            Inode = readUInt32LE reader
+            Mode = readUInt32LE reader // TODO validate, correct is 100644 for normal blobs
+            // 100755 executable, 120000 symbolic link
+            UserId = readUInt32LE reader
+            GroupId = readUInt32LE reader
+            FileSize = readUInt32LE reader
+            Hash = (reader.ReadBytes(20) |> Hash.fromByteArray)
+            Flags = (reader.ReadBytes(2) |> parseFlags)
+            // possibly 2 more bytes here in version 3
+            RelativeFilePath = readFileName reader
+        }
+
+    let parse (input: byte[]): Result<GitIndex, string> = 
+        use reader = new BinaryReader(new MemoryStream(input))
+
+        // TODO validate
+        let signature = reader.ReadBytes(4) |> Encoding.UTF8.GetString
+        let version = readUInt32LE reader
+        let entriesCount = readUInt32LE reader |> int
+
+        let entries = [
+            for i in 0..(entriesCount - 1) do
+                let entry = parseEntry reader
+                yield (entry)
+        ]
+
+        Ok { Entries = entries }
+
+
 type ObjectFormat = Deflated | Wrapped | Content
 
 type ReadObject = {
@@ -106,6 +207,12 @@ module Storage =
     open System.IO.Compression
     open Ionic.Zlib
 
+    let private readDecompressed (stream: FileStream) : byte[] =
+        use gzipStream = new ZlibStream(stream, CompressionMode.Decompress)
+        use memoryStream = new MemoryStream()
+        gzipStream.CopyTo(memoryStream)
+        memoryStream.ToArray()
+
     let private readObjectLoose (rootDir: string) (objectId: Sha1) =
         let id1, id2 = Hash.split objectId
         let objectPath = Path.Combine(rootDir, ".git", "objects", id1, id2)
@@ -115,12 +222,14 @@ module Storage =
     // no support for packfiles for now
     let readObject (rootDir: string) (objectId: Sha1) (*(format: ObjectFormat)*) = 
         let (fileStream, format) = readObjectLoose rootDir objectId
-        
-        use gzipStream = new ZlibStream(fileStream, CompressionMode.Decompress)
-        use memoryStream = new MemoryStream()
-        gzipStream.CopyTo(memoryStream)
+        let content = readDecompressed fileStream
+        { Format = format; Content = content }
 
-        { Format = format; Content = memoryStream.ToArray() }
+    let readIndex (rootDir: string) =
+        use fileStream = Path.Combine(rootDir, ".git", "index") |> File.OpenRead
+        use memoryStream = new MemoryStream()
+        fileStream.CopyTo(memoryStream)
+        memoryStream.ToArray() |> GitIndexes.parse
 
     let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
         let id1, id2 = Hash.split objectId
