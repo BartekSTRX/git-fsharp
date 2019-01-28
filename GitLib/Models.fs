@@ -28,8 +28,9 @@ module GitObjects =
     open System.Text
 
     let wrap { ObjectType = objectType; Object = object }: byte array =
-        let headerStr = sprintf "%s %i%c" (toStr objectType) (object.Length) (Convert.ToChar(0))
-        let headerEncoded = headerStr |> Encoding.UTF8.GetBytes
+        let headerEncoded = 
+            sprintf "%s %i%c" (toStr objectType) (object.Length) (Convert.ToChar(0))
+            |> Encoding.UTF8.GetBytes
         Array.concat [headerEncoded; object]
     
     let unwrap (content: byte array): Result<GitObject, string> =
@@ -38,23 +39,25 @@ module GitObjects =
         let nullChar = Convert.ToChar(0) |> Convert.ToByte
         let firstNull = Array.IndexOf(content, nullChar)
         
-        let objectType = Array.sub content 0 firstSpace
-        let objectLength = Array.sub content (firstSpace + 1)  (firstNull - (firstSpace + 1))
-        
-        let encodedType = fromStr (Encoding.UTF8.GetString(objectType))
-        let encodedLength = Int32.Parse(Encoding.UTF8.GetString(objectLength))
+        let encodedType = 
+            Array.sub content 0 firstSpace
+            |> Encoding.UTF8.GetString
+            |> fromStr
+        let encodedLength = 
+            Array.sub content (firstSpace + 1)  (firstNull - (firstSpace + 1))
+            |> Encoding.UTF8.GetString
+            |> Int32.Parse
 
         let actualLength = content.Length - (firstNull + 1)
 
+        let object = Array.sub content (firstNull + 1) (actualLength)
+
         if encodedLength <> actualLength then 
-            Result.Error "incorrect git object length"
+            Error "incorrect git object length"
         else
             encodedType
-            |> Result.map (fun x -> 
-                {
-                    ObjectType = x
-                    Object = Array.sub content (firstNull + 1) (actualLength)
-                })
+            |> Result.map (fun t -> { ObjectType = t; Object = object })
+
 
 type Sha1 = Sha1 of string
 
@@ -63,16 +66,14 @@ module Hash =
     open System.Security.Cryptography
     open GitObjects
 
-    let private toStr (bytes: byte[]) : string= 
-        let chars = 
-            bytes 
-            |> Array.collect (fun x -> 
-                [| 
-                    (x &&& byte(0b11110000)) >>> 4; 
-                    x &&& byte(0b00001111) 
-                |])
-            |> Array.map (sprintf "%x")
-        String.Join("", chars)
+    let private toStr = 
+        Array.collect (fun (x: byte) -> 
+        [| 
+            (x &&& byte(0b11110000)) >>> 4; 
+            x &&& byte(0b00001111) 
+        |])
+        >> Array.map (sprintf "%x")
+        >> (fun chars -> String.Join("", chars))
 
     let sha1Bytes (object: byte array) = 
         let sha = new SHA1CryptoServiceProvider()
@@ -82,10 +83,10 @@ module Hash =
 
     let split (Sha1 hash) = 
         hash.Substring(0, 2), hash.Substring(2)
+    
+    let private isHex (c: char) = "1234567890abcdefABCDEF".Contains(c)
 
     let parse (str: string) =
-        let isHex (c: char) = "1234567890abcdefABCDEF".Contains(c)
-
         if str.Length <> 40 then
             Error "hash lenght different than 40 characters"
         elif str.ToCharArray() |> Array.forall isHex |> not then
@@ -121,7 +122,7 @@ module Storage =
 
         { Format = format; Content = memoryStream.ToArray() }
 
-    let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) =
+    let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
         let id1, id2 = Hash.split objectId
         let path = Path.Combine(rootDir, ".git", "objects", id1, id2)
 

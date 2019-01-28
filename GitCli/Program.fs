@@ -1,5 +1,5 @@
 ﻿open GitLib
-open GitLib.Models
+open System.IO
 
 [<EntryPoint>]
 let main argv =
@@ -10,9 +10,7 @@ let main argv =
     // read-tree --prefix=bak
     // commit-tree
 
-    //let dir = Directory.GetCurrentDirectory()
-
-    let dir = @"C:\Users\LAPPEK4\Documents\heh2"
+    let dir = Directory.GetCurrentDirectory()
 
     //let hash = "acbe86c7c89586e0912a0a851bacf309c595c308"
     //for option in ["-t"; "-s"; "-p"] do
@@ -23,14 +21,11 @@ let main argv =
     | [| "init" |] -> 
         Commands.init(dir)
     | [| "hash-object"; relativePath |] -> 
-        let (Sha1 hash) = Commands.hashObject dir dir relativePath false
-        printf "%s" hash
+        Commands.hashObject dir dir relativePath false
     | [| "hash-object"; "-w"; relativePath |] -> 
-        let (Sha1 hash) = Commands.hashObject dir dir relativePath true
-        printf "%s" hash
+        Commands.hashObject dir dir relativePath true
     | [| "cat-file"; option; hash |] ->
         Commands.catFiles dir option hash
-        |> printf "%s"
     | _ -> printf "incorrect args %A" argv
 
     0

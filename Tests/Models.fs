@@ -1,11 +1,9 @@
-module Tests
+module Models
 
 open System
+open System.Text
 open Xunit
 open GitLib.Models
-open System.IO
-open GitLib
-open System.Text
 
 [<Fact>]
 let ``Wrap and unwrap object`` () =
@@ -32,10 +30,10 @@ let ``Unwrap and wrap object`` () =
     | Ok object -> Assert.Equal<byte[]>(wrappedObject, object)
     | Error reason -> failwith reason
 
-[<Fact>]
-let ``Hash blob object`` () =
-    let rootDir = Directory.GetCurrentDirectory()
-    let path = Path.Combine("TestData", "SampleTextFile.txt")
+//[<Fact>]
+//let ``Hash blob object`` () =
+//    let rootDir = Directory.GetCurrentDirectory()
+//    let path = Path.Combine("TestData", "SampleTextFile.txt")
 
-    let (Sha1 hash) = Commands.hashObject rootDir rootDir path false
-    Assert.Equal("26896bbf9c17fd5475973450ec83f7d8d84575bb", hash)
+//    Commands.hashObject rootDir rootDir path false
+//    Assert.Equal("26896bbf9c17fd5475973450ec83f7d8d84575bb", hash)

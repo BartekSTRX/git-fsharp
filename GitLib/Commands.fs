@@ -2,10 +2,10 @@ module GitLib.Commands
 
 open System
 open System.IO
-open GitLib.Models
 open System.Text
+open GitLib.Models
 
-let init (rootDir: string) =
+let init (rootDir: string) : unit =
     let gitDir = Path.Combine(rootDir, ".git")
 
     let folders = [
@@ -29,41 +29,42 @@ symlinks = false
 ignorecase = true
 "
     let configPath = Path.Combine(gitDir, "config")
-    File.WriteAllText(configPath, defaultConfig)
+    File.WriteAllText(configPath, defaultConfig, Encoding.UTF8)
 
     let defaultHead = "ref: refs/heads/master\n"
     let headPath = Path.Combine(gitDir, "HEAD")
-    File.WriteAllText(headPath, defaultHead)
+    File.WriteAllText(headPath, defaultHead, Encoding.UTF8)
 
 
-let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (write: bool) : Sha1 = 
+let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (write: bool) : unit = 
     let objectPath = Path.Combine(currentDir, relativePath)
 
     let content = File.ReadAllBytes(objectPath)
-    let gitObject = { ObjectType = Blob; Object = content }
-    let wrappedObject = gitObject |> GitObjects.wrap
+    let wrappedObject = 
+        { ObjectType = Blob; Object = content } 
+        |> GitObjects.wrap
 
     let hash = wrappedObject |> Hash.sha1Bytes
     
     if write then 
         Storage.writeObjectContent rootDir hash wrappedObject
 
-    hash
+    let (Sha1 objectId) = hash
+    objectId |> printf "%s"
 
-let catFiles (rootDir: string) (option: string) (objectId: string) : string = 
-    Hash.parse objectId
+let catFiles (rootDir: string) (option: string) (objectId: string) : unit = 
+    objectId
+    |> Hash.parse
     |> Result.bind (
-        fun hash -> 
-            let object = Storage.readObject rootDir hash
-            let unwrapped = GitObjects.unwrap object.Content
-            unwrapped)
-    |> Result.map (fun result -> 
+        Storage.readObject rootDir 
+        >> (fun x -> x.Content) 
+        >> GitObjects.unwrap)
+    |> Result.bind (fun result -> 
         match option with 
-        | "-t" -> sprintf "%s" (result.ObjectType |> ObjectTypes.toStr)
-        | "-s" -> sprintf "%i" result.Size
-        | "-p" -> sprintf "%s" (result.Object |> Encoding.UTF8.GetString)
-        | _ -> failwith "incorrect cat-files option")
-    |> (fun result ->
-            match result with 
-            | Ok str -> str
-            | Error reason -> failwith reason)
+        | "-t" -> Ok (result.ObjectType |> ObjectTypes.toStr)
+        | "-s" -> Ok (result.Size |> sprintf "%i")
+        | "-p" -> Ok (result.Object |> Encoding.UTF8.GetString)
+        | _ -> Error "incorrect cat-files option")
+    |> (function 
+        | Ok str -> str |> printf "%s"
+        | Error err -> printf "%s" err)

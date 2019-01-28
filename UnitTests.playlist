@@ -1,0 +1,4 @@
+<Playlist Version="1.0">
+  <Add Test="Models.Wrap and unwrap object" />
+  <Add Test="Models.Unwrap and wrap object" />
+</Playlist>
