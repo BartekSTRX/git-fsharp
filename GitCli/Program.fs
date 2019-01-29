@@ -29,7 +29,7 @@ let main argv =
     | ["ls-files"; "-s"] ->
         Commands.lsFiles dir LsFileFormat.ShowObjectNames
     | ["update-index"; "--add"; "--cacheinfo"; mode; hash; filePath] ->
-        ()
+        Commands.updateIndexAdd (CacheInfo(mode, hash, filePath))
     | ["write-tree"] ->
         ()
     | _ -> printf "incorrect args %A" argv

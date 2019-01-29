@@ -101,3 +101,8 @@ let lsFiles (rootDir: string) (format: LsFileFormat) =
         | Ok str -> str |> printf "%s"
         | Error err -> printf "%s" err)
     
+
+type CacheInfo = CacheInfo of mode:string * hash:string * path:string
+
+let updateIndexAdd (CacheInfo(mode, hash, path)) = 
+    ()
