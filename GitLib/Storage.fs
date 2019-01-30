@@ -1,4 +1,4 @@
-﻿module GitLib.Models
+﻿namespace GitLib
 
 type ObjectFormat = Deflated | Wrapped | Content
 
@@ -30,11 +30,19 @@ module Storage =
         let content = readDecompressed fileStream
         { Format = format; Content = content }
 
-    let readIndex (rootDir: string) =
-        use fileStream = Path.Combine(rootDir, ".git", "index") |> File.OpenRead
+
+    let getIndexPath rootDir = Path.Combine(rootDir, ".git", "index")
+
+    let readIndex (indexPath: string) =
+        use fileStream = indexPath |> File.OpenRead
         use memoryStream = new MemoryStream()
         fileStream.CopyTo(memoryStream)
         memoryStream.ToArray() |> GitIndexes.parse
+
+    let writeIndex (rootDir: string) (index: GitIndex) = 
+        use fileStream = rootDir |> getIndexPath |> File.OpenWrite
+        let bytes = index |> GitIndexes.serialize
+        fileStream.Write(bytes, 0, bytes.Length)
 
     let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
         let id1, id2 = Hash.split objectId

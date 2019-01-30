@@ -1,5 +1,28 @@
 ﻿namespace GitLib
 
+open System
+open System.IO
+open System.Text  
+
+
+type IndexEntryMode = 
+    | Mode100644 // normal file
+    | Mode100755 // executable
+    | Mode120000 // symbolic link
+
+module IndexEntryModes =
+    let parse = function
+        | "100644" -> Ok Mode100644
+        | "100755" -> Ok Mode100755
+        | "120000" -> Ok Mode120000
+        | _ -> Error "unsupported mode"
+
+    let toStr = function
+        | Mode100644 -> "100644"
+        | Mode100755 -> "100755"
+        | Mode120000 -> "120000"
+
+
 type MergeStage = uint16
 
 type IndexEntryFlags = {
@@ -14,7 +37,7 @@ type GitIndexEntry = {
     Mtime: byte[]
     Device: uint32
     Inode: uint32
-    Mode: uint32
+    Mode: IndexEntryMode
     UserId: uint32
     GroupId: uint32
     FileSize: uint32
@@ -22,10 +45,34 @@ type GitIndexEntry = {
     Flags: IndexEntryFlags
     RelativeFilePath: string
 }
+with 
+    static member Create (fileInfo: FileInfo) mode objectId path = 
+        let dateToBytes (date: DateTime) = 
+            date.ToBinary() |> BitConverter.GetBytes
+        {
+            Ctime = fileInfo.CreationTimeUtc |> dateToBytes
+            Mtime = fileInfo.LastAccessTimeUtc |> dateToBytes
+            Device = 0u
+            Inode = 0u
+            Mode = mode // todo validate
+            UserId = 0u
+            GroupId = 0u
+            FileSize = fileInfo.Length |> uint32
+            Hash = objectId
+            Flags = { 
+                AssumeValid = false
+                Extended = false
+                Stage = 0us
+                NameLength = fileInfo.Name |> Encoding.UTF8.GetByteCount
+            }
+            RelativeFilePath = path
+        }
 
 type GitIndex = {
     Entries: GitIndexEntry list
 }
+with 
+    static member Empty = { Entries = [] }
 
 (* Git index entry layout
  - - - - - - - - - - - - - - - - 
@@ -40,9 +87,6 @@ type GitIndex = {
 *)
 
 module GitIndexes = 
-    open System
-    open System.IO
-    open System.Text
     
     let private parseFlags (arr: byte[]): IndexEntryFlags =
         let bits = (arr.[0] |> uint16) + (arr.[1] |> uint16)
@@ -100,7 +144,7 @@ module GitIndexes =
             paddingSize <- paddingSize + 1
         reader.BaseStream.Position <- reader.BaseStream.Position - 1L;
 
-        let totalLength = 62 + arr.Length + 1 + paddingSize
+        let totalLength = 62 + arr.Length + paddingSize
         if totalLength % 8 = 0 then
             arr |> Array.ofList |> Array.rev |> Encoding.UTF8.GetString |> Ok
         else 
@@ -108,27 +152,52 @@ module GitIndexes =
 
     let private serializeFileName (name: string) = 
         Array.append (name |> Encoding.UTF8.GetBytes) [| 0uy |]
+    
+    let private parseMode (bytes: byte[]) = 
+        match (readUInt32LE bytes) with 
+        | 33188u -> Ok Mode100644
+        | 33261u -> Ok Mode100755
+        | 40960u -> Ok Mode120000
+        | _ -> Error "unsupported file mode"
+
+    let private serializeMode mode =
+        match mode with
+        | Mode100644 -> 33188u
+        | Mode100755 -> 33261u
+        | Mode120000 -> 40960u
+        |> serializeUInt32LE
 
     let private parseEntry (reader: BinaryReader): Result<GitIndexEntry, string> = 
-        let entry = {
-            Ctime = reader.ReadBytes(8)
-            Mtime = reader.ReadBytes(8)
-            Device = reader.ReadBytes(4) |> readUInt32LE
-            Inode = reader.ReadBytes(4) |> readUInt32LE
-            Mode = reader.ReadBytes(4) |> readUInt32LE // TODO validate, correct is 100644 for normal blobs
-            // 100755 executable, 120000 symbolic link
-            UserId = reader.ReadBytes(4) |> readUInt32LE
-            GroupId = reader.ReadBytes(4) |> readUInt32LE
-            FileSize = reader.ReadBytes(4) |> readUInt32LE
-            Hash = (reader.ReadBytes(20) |> Hash.fromByteArray)
-            Flags = (reader.ReadBytes(2) |> parseFlags)
-            // possibly 2 more bytes here in version 3
-            RelativeFilePath = ""
-        }
+        let ctime = reader.ReadBytes(8)
+        let mtime = reader.ReadBytes(8)
+        let device = reader.ReadBytes(4) |> readUInt32LE
+        let inode = reader.ReadBytes(4) |> readUInt32LE
+        let modeResult = reader.ReadBytes(4) |> parseMode
+        let uid = reader.ReadBytes(4) |> readUInt32LE
+        let gid = reader.ReadBytes(4) |> readUInt32LE
+        let fileSize = reader.ReadBytes(4) |> readUInt32LE
+        let hash = reader.ReadBytes(20) |> Hash.fromByteArray
+        let flags = reader.ReadBytes(2) |> parseFlags
         let pathResult = readFileName reader
-        match pathResult with 
-        | Ok path -> Ok { entry with RelativeFilePath = path }
-        | Error reason -> Error reason
+
+        match modeResult, pathResult with 
+        | Ok mode, Ok path -> 
+            Ok {
+                Ctime = ctime
+                Mtime = mtime
+                Device = device
+                Inode = inode
+                Mode = mode
+                UserId = uid
+                GroupId = gid
+                FileSize = fileSize
+                Hash = hash
+                Flags = flags
+                // possibly 2 more bytes here in version 3
+                RelativeFilePath = path
+            }
+        | Error reason, _ -> Error reason
+        | _, Error reason -> Error reason
 
     let private serializeEntry (entry: GitIndexEntry): byte[] = 
         let entryLength = 62 + entry.RelativeFilePath.Length + 1
@@ -138,7 +207,7 @@ module GitIndexes =
             entry.Mtime
             entry.Device |> serializeUInt32LE
             entry.Inode |> serializeUInt32LE
-            entry.Mode |> serializeUInt32LE
+            entry.Mode |> serializeMode
             entry.UserId |> serializeUInt32LE
             entry.GroupId |> serializeUInt32LE
             entry.FileSize |> serializeUInt32LE

@@ -2,17 +2,17 @@
 
 type ObjectType = Blob | Tree | Commit
 
-module ObjectTypes = 
+module ObjectTypes =
     let toStr = function
         | Blob -> "blob"
         | Tree -> "tree"
         | Commit -> "commit"
 
     let fromStr = function
-        | "blob" -> Result.Ok Blob
-        | "tree" -> Result.Ok Tree
-        | "commit" -> Result.Ok Commit
-        | _ -> Result.Error "incorrect git object type"
+        | "blob" -> Ok Blob
+        | "tree" -> Ok Tree
+        | "commit" -> Ok Commit
+        | _ -> Error "incorrect git object type"
 
 
 type GitObject = {

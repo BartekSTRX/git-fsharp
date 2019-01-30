@@ -1,9 +1,9 @@
-module Models
+module ModelsTests
 
 open System
 open System.Text
 open Xunit
-open GitLib.Models
+open GitLib
 
 [<Fact>]
 let ``Wrap and unwrap object`` () =

@@ -1,8 +1,8 @@
 ﻿module CommandInit
 
+open System.IO
 open Xunit
 open GitLib
-open System.IO
 
 [<Fact>]
 let ``Create empty repository - files are saved on disk`` () =

@@ -8,3 +8,11 @@
             | Error reason -> Error reason
         | (Error reason) :: tail -> Error reason
         | [] -> Ok []
+
+
+    type ResultBuilder() =
+        member __.Bind(a, binder) = Result.bind binder a
+
+        member __.Return(a) = Ok a
+
+    let result = new ResultBuilder()
