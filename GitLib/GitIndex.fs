@@ -89,7 +89,8 @@ with
 module GitIndexes = 
     
     let private parseFlags (arr: byte[]): IndexEntryFlags =
-        let bits = (arr.[0] |> uint16) + (arr.[1] |> uint16)
+        let first, second = arr.[0] |> uint16, arr.[1] |> uint16
+        let bits = (first <<< 8) + second
         let assumeValid = 
             bits &&& 0b1000000000000000us
         let extended = 
@@ -107,19 +108,20 @@ module GitIndexes =
 
     let private serializeFlags (entry: GitIndexEntry): byte[] =
         let { 
-            Flags = { AssumeValid = assumeValid; Stage = stage }
+            Flags = { AssumeValid = assumeValid; Extended = extended; Stage = stage }
             RelativeFilePath = path
             } = entry
         let length = min (Encoding.UTF8.GetByteCount(path)) 0xFFF |> uint16
         
         [|
             (if assumeValid then 0b1000000000000000us else 0us)
-            0us // extended is 0 in version 2
+            (if extended then 0b0100000000000000us else 0us) // extended is 0 in version 2
             stage &&& 0b0011000000000000us
             length &&& 0b0000111111111111us
         |] 
         |> Array.reduce (|||) 
         |> BitConverter.GetBytes
+        |> Array.rev
         
     let private readUInt32LE (bytes: byte[]): uint32 =
         let reversed = bytes |> Array.rev
@@ -136,19 +138,15 @@ module GitIndexes =
             arr <- c :: arr
             c <- reader.ReadByte()
         
+        let headerLength = 62
+        let mutable totalSize = headerLength + arr.Length + 1
         // read null bytes used for padding (padded to multiply of 8)
         // ugly and hacky solution
-        let mutable paddingSize = 0
-        while c = 0uy do
+        while totalSize % 8 <> 0 do
             c <- reader.ReadByte()
-            paddingSize <- paddingSize + 1
-        reader.BaseStream.Position <- reader.BaseStream.Position - 1L;
+            totalSize <- totalSize + 1
 
-        let totalLength = 62 + arr.Length + paddingSize
-        if totalLength % 8 = 0 then
-            arr |> Array.ofList |> Array.rev |> Encoding.UTF8.GetString |> Ok
-        else 
-            Error "index entry has to be padded to the length of multiply of 8"
+        arr |> Array.ofList |> Array.rev |> Encoding.UTF8.GetString |> Ok
 
     let private serializeFileName (name: string) = 
         Array.append (name |> Encoding.UTF8.GetBytes) [| 0uy |]
@@ -158,7 +156,7 @@ module GitIndexes =
         | 33188u -> Ok Mode100644
         | 33261u -> Ok Mode100755
         | 40960u -> Ok Mode120000
-        | _ -> Error "unsupported file mode"
+        | m -> Error (sprintf "unsupported file mode %i" m)
 
     let private serializeMode mode =
         match mode with
@@ -201,7 +199,9 @@ module GitIndexes =
 
     let private serializeEntry (entry: GitIndexEntry): byte[] = 
         let entryLength = 62 + entry.RelativeFilePath.Length + 1
-        let nullPaddingLength = 8 - (entryLength % 8)
+        let nullPaddingLength = 
+            let padding = 8 - (entryLength % 8)
+            if padding = 8 then 0 else padding
         [|
             entry.Ctime
             entry.Mtime
@@ -249,11 +249,17 @@ module GitIndexes =
         use outputStream = new MemoryStream()
         use writer = new BinaryWriter(outputStream)
 
-        seq {
-            yield ("DIRC" |> Encoding.UTF8.GetBytes)
-            yield (serializeUInt32LE 2u)
-            yield (entries.Length |> uint32 |> serializeUInt32LE)
-            yield! (entries|> Seq.ofList |> Seq.map serializeEntry)
-        } |> Seq.iter writer.Write
+        let indexContent = 
+            seq {
+                yield ("DIRC" |> Encoding.UTF8.GetBytes)
+                yield (serializeUInt32LE 2u)
+                yield (entries.Length |> uint32 |> serializeUInt32LE)
+                yield! (entries|> Seq.ofList |> Seq.map serializeEntry)
+            } |> Array.concat
+        
+        let indexHash = indexContent |> Hash.sha1Bytes |> Hash.toByteArray
+        
+        writer.Write indexContent
+        writer.Write indexHash
 
         outputStream.ToArray()
