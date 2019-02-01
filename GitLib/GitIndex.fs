@@ -5,24 +5,6 @@ open System.IO
 open System.Text  
 
 
-type IndexEntryMode = 
-    | Mode100644 // normal file
-    | Mode100755 // executable
-    | Mode120000 // symbolic link
-
-module IndexEntryModes =
-    let parse = function
-        | "100644" -> Ok Mode100644
-        | "100755" -> Ok Mode100755
-        | "120000" -> Ok Mode120000
-        | _ -> Error "unsupported mode"
-
-    let toStr = function
-        | Mode100644 -> "100644"
-        | Mode100755 -> "100755"
-        | Mode120000 -> "120000"
-
-
 type MergeStage = uint16
 
 type IndexEntryFlags = {

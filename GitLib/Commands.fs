@@ -55,21 +55,27 @@ module Commands =
 
     // for now works only with blobs
     let catFiles (rootDir: string) (option: string) (objectId: string) : unit = 
-        objectId
-        |> Hash.parse
-        |> Result.bind (
-            Storage.readObject rootDir 
-            >> (fun x -> x.Content) 
-            >> GitObjects.unwrap)
-        |> Result.bind (fun result -> 
-            match option with 
-            | "-t" -> Ok (result.ObjectType |> ObjectTypes.toStr)
-            | "-s" -> Ok (result.Size |> sprintf "%i")
-            | "-p" -> Ok (result.Object |> Encoding.UTF8.GetString)
-            | _ -> Error "incorrect cat-files option")
-        |> (function 
-            | Ok str -> str |> printf "%s"
-            | Error err -> printf "%s" err)
+        result {
+            let! hash = objectId |> Hash.parse
+            let! object = 
+                hash
+                |> Storage.readObject rootDir 
+                |> (fun x -> x.Content) 
+                |> GitObjects.unwrap
+            let! res = 
+                match option with 
+                | "-t" -> Ok (object.ObjectType |> ObjectTypes.toStr)
+                | "-s" -> Ok (object.Size |> sprintf "%i")
+                | "-p" -> 
+                    match object.ObjectType with
+                    | Blob -> object.Object |> Encoding.UTF8.GetString |> Ok
+                    | Tree -> object.Object |> Trees.parseTree |> Result.map Trees.formatTree
+                    | Commit -> object.Object |> Encoding.UTF8.GetString |> Ok
+                | _ -> Error "incorrect cat-files option"
+            return res
+        } |> (function 
+                | Ok str -> str |> printf "%s"
+                | Error err -> printf "%s" err)
 
 
     type LsFileFormat = Default | ShowObjectNames

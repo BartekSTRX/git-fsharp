@@ -22,6 +22,7 @@ type GitObject = {
 with 
     member this.Size = this.Object.Length
 
+
 module GitObjects =
     open System
     open ObjectTypes
@@ -57,3 +58,76 @@ module GitObjects =
         else
             encodedType
             |> Result.map (fun t -> { ObjectType = t; Object = object })
+
+
+type IndexEntryMode = 
+    | Mode100644 // normal file
+    | Mode100755 // executable
+    | Mode120000 // symbolic link
+    | Mode040000 // directory
+
+module IndexEntryModes =
+    let parse = function
+        | "100644" -> Ok Mode100644
+        | "100755" -> Ok Mode100755
+        | "120000" -> Ok Mode120000
+        | "040000" | "40000" -> Ok Mode040000
+        | _ -> Error "unsupported mode"
+
+    let toStr = function
+        | Mode100644 -> "100644"
+        | Mode100755 -> "100755"
+        | Mode120000 -> "120000"
+        | Mode040000 -> "040000"
+
+
+
+type TreeEntry = TreeEntry of IndexEntryMode * Sha1 * path:string
+
+type Tree = {
+    TreeEntries: TreeEntry list
+}
+
+module Trees =
+    open System
+    open System.Text
+
+    let parseTree (content: byte[]) = 
+        let rec internalParse (bytes: byte[]) (parsed: TreeEntry list): Result<TreeEntry list, string> =
+            match bytes with
+            | [| |] -> Ok parsed
+            | _ -> 
+                let spaceChar = Convert.ToByte(' ')
+                let firstSpace = Array.IndexOf(bytes, spaceChar)
+                let nullChar = Convert.ToChar(0) |> Convert.ToByte
+                let firstNull = Array.IndexOf(bytes, nullChar)
+
+                let encodedMode = 
+                    Array.sub bytes 0 firstSpace
+                    |> Encoding.UTF8.GetString
+                    |> IndexEntryModes.parse
+                let encodedPath = 
+                    Array.sub bytes (firstSpace + 1)  (firstNull - (firstSpace + 1))
+                    |> Encoding.UTF8.GetString
+                let hash = 
+                    Array.sub bytes (firstNull + 1) 20
+                    |> Hash.fromByteArray
+                let endOfEntry = (firstNull + 1 + 20)
+                let remainingBytes = Array.sub bytes endOfEntry (bytes.Length - endOfEntry)
+
+                match encodedMode with 
+                | Ok mode -> 
+                    let newEntry = TreeEntry(mode, hash, encodedPath)
+                    internalParse remainingBytes (newEntry :: parsed)
+                | Error reason -> Error reason
+        let result = internalParse content []
+        match result with 
+        | Ok entries -> Ok { TreeEntries = (entries |> List.rev) }
+        | Error reason -> Error reason
+
+    let formatTree { TreeEntries = entries } = 
+        let formatEntry (TreeEntry(mode, Sha1 hash, path)) =
+            let modeStr = mode |> IndexEntryModes.toStr
+            sprintf "%s TYPE %s    %s\n" modeStr hash path
+        let formatedEntries = entries |> List.map formatEntry
+        String.Join("", formatedEntries)

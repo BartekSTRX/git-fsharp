@@ -1,21 +1,29 @@
 ﻿open GitLib
 open GitLib.Commands
+open System
 
 [<EntryPoint>]
 let main argv =
 
     // TODO
-    // update-index --add --cache-info
     // write-tree
     // read-tree --prefix=bak
     // commit-tree
+    // ls-tree
+    // branch?
+    // update-ref
+    // symbolic-ref
+    // log
 
     //let dir = Directory.GetCurrentDirectory()
     let dir = "C:\Users\LAPPEK4\Documents\heh1"
 
-    Commands.lsFiles dir LsFileFormat.Default
+    Commands.catFiles dir "-p" "deeafcb1a078d8add9f9a6209d772e0f03b1de79"
 
-    Commands.updateIndexAdd dir dir (CacheInfo("100644", "8d5c3f86d71f9d9265b5b47a3b019cfed9cc46a7", "ggggf.txt"))
+    //Commands.lsFiles dir LsFileFormat.Default
+    //Commands.updateIndexAdd dir dir (CacheInfo("100644", "8d5c3f86d71f9d9265b5b47a3b019cfed9cc46a7", "ggggf.txt"))
+
+    Console.ReadLine() |> ignore
 
     let argsList = argv |> List.ofArray
 

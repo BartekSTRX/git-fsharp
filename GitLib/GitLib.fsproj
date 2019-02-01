@@ -6,8 +6,8 @@
 
   <ItemGroup>
     <Compile Include="Utils.fs" />
-    <Compile Include="GitObjects.fs" />
     <Compile Include="Hash.fs" />
+    <Compile Include="GitObjects.fs" />
     <Compile Include="GitIndex.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="Commands.fs" />
