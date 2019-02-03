@@ -70,7 +70,7 @@ with
 
 
 type IndexTreeModel = 
-| IndexBlobModel
+| IndexBlobModel of IndexEntryMode * Sha1 * fileName:string
 | IndexSubTreeModel of IndexTreeModel list
 
 module GitIndexes = 
@@ -264,7 +264,12 @@ module GitIndexes =
 
         let rec traverseIndex (entriesWithPaths: (string list * GitIndexEntry) list): IndexTreeModel =
             let subTrees, blobs = entriesWithPaths |> List.partition (fun (ps, _) -> ps.Length > 1)
-            let thisSubTreeBlobs = blobs |> List.map (fun b -> IndexBlobModel)
+
+            let thisSubTreeBlobs = 
+                blobs 
+                |> List.map (fun ([filename], indexEntry) -> 
+                    IndexBlobModel(indexEntry.Mode, indexEntry.Hash, filename))
+
             let thisSubTreeSubTrees = 
                 subTrees 
                 |> List.groupBy (fun (root :: _path, _entry) -> root)

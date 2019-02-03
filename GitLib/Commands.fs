@@ -70,7 +70,7 @@ module Commands =
                     match object.ObjectType with
                     | Blob -> object.Object |> Encoding.UTF8.GetString |> Ok
                     | Tree -> object.Object |> Trees.parseTree |> Result.map Trees.formatTree
-                    | Commit -> object.Object |> Encoding.UTF8.GetString |> Ok
+                    | Commit -> object.Object |> Commits.parseCommit |> Result.map Commits.formatCommit
                 | _ -> Error "incorrect cat-files option"
             return res
         } |> (function 
@@ -139,3 +139,10 @@ module Commands =
         match newIndex with 
         | Ok index -> Storage.writeIndex rootDir index
         | Error reason -> printf "%s" reason
+
+
+    let writeTree (rootDir: string) =
+        let indexPath = Storage.getIndexPath rootDir
+        let index = Storage.readIndex indexPath
+        let treeModel = Result.map GitIndexes.getTree index
+        ()

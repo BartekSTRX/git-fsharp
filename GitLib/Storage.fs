@@ -30,6 +30,18 @@ module Storage =
         let content = readDecompressed fileStream
         { Format = format; Content = content }
 
+    let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
+        let id1, id2 = Hash.split objectId
+        let path = Path.Combine(rootDir, ".git", "objects", id1, id2)
+
+        use memoryStream = new MemoryStream(content)
+        use gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
+
+        let fileInfo = new FileInfo(path)
+        fileInfo.Directory.Create()
+        use fileStream = File.OpenWrite(fileInfo.FullName)
+        gzipStream.CopyTo(fileStream)
+
 
     let getIndexPath rootDir = Path.Combine(rootDir, ".git", "index")
 
@@ -43,15 +55,3 @@ module Storage =
         use fileStream = rootDir |> getIndexPath |> File.OpenWrite
         let bytes = index |> GitIndexes.serialize
         fileStream.Write(bytes, 0, bytes.Length)
-
-    let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
-        let id1, id2 = Hash.split objectId
-        let path = Path.Combine(rootDir, ".git", "objects", id1, id2)
-
-        use memoryStream = new MemoryStream(content)
-        use gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
-
-        let fileInfo = new FileInfo(path)
-        fileInfo.Directory.Create()
-        use fileStream = File.OpenWrite(fileInfo.FullName)
-        gzipStream.CopyTo(fileStream)
