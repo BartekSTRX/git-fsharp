@@ -53,7 +53,7 @@ module Commands =
         let (Sha1 objectId) = hash
         objectId |> printf "%s"
 
-    // for now works only with blobs
+    // for now works only with blobs and trees
     let catFiles (rootDir: string) (option: string) (objectId: string) : unit = 
         result {
             let! hash = objectId |> Hash.parse

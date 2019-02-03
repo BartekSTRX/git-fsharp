@@ -81,8 +81,14 @@ module IndexEntryModes =
         | Mode040000 -> "040000"
 
 
+type TreeEntryType = BlobEntry | SubTreeEntry
 
 type TreeEntry = TreeEntry of IndexEntryMode * Sha1 * path:string
+with 
+    member this.EntryType = 
+        match this with
+        | TreeEntry(Mode040000, _, _) -> SubTreeEntry
+        | _ -> BlobEntry
 
 type Tree = {
     TreeEntries: TreeEntry list
@@ -126,8 +132,12 @@ module Trees =
         | Error reason -> Error reason
 
     let formatTree { TreeEntries = entries } = 
+        let modeToEntryType = function
+            | Mode100644 | Mode100755 | Mode120000 -> "blob"
+            | Mode040000 -> "tree"
         let formatEntry (TreeEntry(mode, Sha1 hash, path)) =
             let modeStr = mode |> IndexEntryModes.toStr
-            sprintf "%s TYPE %s    %s\n" modeStr hash path
+            let typeStr = mode |> modeToEntryType
+            sprintf "%s %s %s    %s\n" modeStr typeStr hash path
         let formatedEntries = entries |> List.map formatEntry
         String.Join("", formatedEntries)

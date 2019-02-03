@@ -14,6 +14,7 @@ let main argv =
     // update-ref
     // symbolic-ref
     // log
+    // git add => git hash-object -w && git update-index
 
     //let dir = Directory.GetCurrentDirectory()
     let dir = "C:\Users\LAPPEK4\Documents\heh1"

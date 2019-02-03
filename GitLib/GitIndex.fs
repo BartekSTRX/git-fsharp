@@ -68,7 +68,13 @@ with
  - - - - - - - - - - - - - - - - 
 *)
 
+
+type IndexTreeModel = 
+| IndexBlobModel
+| IndexSubTreeModel of IndexTreeModel list
+
 module GitIndexes = 
+    open Utils
     
     let private parseFlags (arr: byte[]): IndexEntryFlags =
         let first, second = arr.[0] |> uint16, arr.[1] |> uint16
@@ -138,6 +144,7 @@ module GitIndexes =
         | 33188u -> Ok Mode100644
         | 33261u -> Ok Mode100755
         | 40960u -> Ok Mode120000
+        | 16384u -> Ok Mode040000
         | m -> Error (sprintf "unsupported file mode %i" m)
 
     let private serializeMode mode =
@@ -145,6 +152,7 @@ module GitIndexes =
         | Mode100644 -> 33188u
         | Mode100755 -> 33261u
         | Mode120000 -> 40960u
+        | Mode040000 -> 16384u
         |> serializeUInt32LE
 
     let private parseEntry (reader: BinaryReader): Result<GitIndexEntry, string> = 
@@ -215,17 +223,19 @@ module GitIndexes =
 
         use reader = new BinaryReader(new MemoryStream(input))
 
-        (parseSignature reader)
-        |> Result.bind (fun _ -> parseVersion reader)
-        |> Result.map (fun _ -> parseEntriesCount reader)
-        |> Result.bind (fun entriesCount -> 
-            [
-                for _ in 0..(entriesCount - 1) do
-                    yield (parseEntry reader)
-            ] |> Utils.traverse)
-        |> (function 
-            | Ok entries -> Ok { Entries = entries } 
-            | Error reason -> Error reason)        
+        result {
+            let! _signature = parseSignature reader 
+            let! _version = parseVersion reader
+            let entriesCount = parseEntriesCount reader
+
+            let! entries = 
+                [
+                    for _ in 0..(entriesCount - 1) do
+                        yield (parseEntry reader)
+                ] |> Utils.traverse
+
+            return { Entries = entries }
+        }
 
     let serialize ({ Entries = entries }: GitIndex) : byte[] =
         use outputStream = new MemoryStream()
@@ -245,3 +255,27 @@ module GitIndexes =
         writer.Write indexHash
 
         outputStream.ToArray()
+
+
+    let getTree { Entries = entries } = 
+        let splitPath (path: string) = 
+            path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
+            |> List.ofArray
+
+        let rec traverseIndex (entriesWithPaths: (string list * GitIndexEntry) list): IndexTreeModel =
+            let subTrees, blobs = entriesWithPaths |> List.partition (fun (ps, _) -> ps.Length > 1)
+            let thisSubTreeBlobs = blobs |> List.map (fun b -> IndexBlobModel)
+            let thisSubTreeSubTrees = 
+                subTrees 
+                |> List.groupBy (fun (root :: _path, _entry) -> root)
+                |> List.map (fun (root, entries) -> 
+                    let subEntries = 
+                        entries 
+                        |> List.map (fun (_root :: path, entry) -> (path, entry)) 
+                        |> traverseIndex
+                    subEntries)
+            IndexSubTreeModel(List.append thisSubTreeBlobs thisSubTreeSubTrees)
+        
+        entries 
+        |> List.map (fun e -> (splitPath e.RelativeFilePath, e))
+        |> traverseIndex
