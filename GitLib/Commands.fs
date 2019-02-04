@@ -144,5 +144,5 @@ module Commands =
     let writeTree (rootDir: string) =
         let indexPath = Storage.getIndexPath rootDir
         let index = Storage.readIndex indexPath
-        let treeModel = Result.map GitIndexes.getTree index
+        let treeModel = Result.map MakeTree.getTree index
         ()

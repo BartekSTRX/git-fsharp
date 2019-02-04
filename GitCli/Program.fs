@@ -14,6 +14,8 @@ let main argv =
     // update-index -- add a file to the index
 
     // TODO
+    // git mktree -- creates a tree from stdin
+    // git ls-tree -- seems to work exactly like hash-object -p for trees
     // write-tree
     // read-tree --prefix=bak
     // commit-tree
@@ -23,6 +25,7 @@ let main argv =
     // symbolic-ref
     // log
     // git add => git hash-object -w && git update-index
+    // git ls-tree VS git cat-file -p <hash of a tree>
 
     //let dir = Directory.GetCurrentDirectory()
     let dir = "C:\Users\LAPPEK4\Documents\heh2"

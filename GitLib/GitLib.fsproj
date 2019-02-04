@@ -7,8 +7,13 @@
   <ItemGroup>
     <Compile Include="Utils.fs" />
     <Compile Include="Hash.fs" />
+    <Compile Include="ObjectTypes.fs" />
+    <Compile Include="IndexEntryModes.fs" />
     <Compile Include="GitObjects.fs" />
+    <Compile Include="Trees.fs" />
+    <Compile Include="Commits.fs" />
     <Compile Include="GitIndex.fs" />
+    <Compile Include="MakeTree.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="Commands.fs" />
   </ItemGroup>

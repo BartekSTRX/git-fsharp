@@ -68,11 +68,6 @@ with
  - - - - - - - - - - - - - - - - 
 *)
 
-
-type IndexTreeModel = 
-| IndexBlobModel of IndexEntryMode * Sha1 * fileName:string
-| IndexSubTreeModel of IndexTreeModel list
-
 module GitIndexes = 
     open Utils
     
@@ -255,32 +250,3 @@ module GitIndexes =
         writer.Write indexHash
 
         outputStream.ToArray()
-
-
-    let getTree { Entries = entries } = 
-        let splitPath (path: string) = 
-            path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
-            |> List.ofArray
-
-        let rec traverseIndex (entriesWithPaths: (string list * GitIndexEntry) list): IndexTreeModel =
-            let subTrees, blobs = entriesWithPaths |> List.partition (fun (ps, _) -> ps.Length > 1)
-
-            let thisSubTreeBlobs = 
-                blobs 
-                |> List.map (fun ([filename], indexEntry) -> 
-                    IndexBlobModel(indexEntry.Mode, indexEntry.Hash, filename))
-
-            let thisSubTreeSubTrees = 
-                subTrees 
-                |> List.groupBy (fun (root :: _path, _entry) -> root)
-                |> List.map (fun (root, entries) -> 
-                    let subEntries = 
-                        entries 
-                        |> List.map (fun (_root :: path, entry) -> (path, entry)) 
-                        |> traverseIndex
-                    subEntries)
-            IndexSubTreeModel(List.append thisSubTreeBlobs thisSubTreeSubTrees)
-        
-        entries 
-        |> List.map (fun e -> (splitPath e.RelativeFilePath, e))
-        |> traverseIndex
