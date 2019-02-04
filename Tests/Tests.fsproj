@@ -11,8 +11,8 @@
     <Content Include="TestData\SampleTextFile.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Compile Include="Models.fs" />
     <Compile Include="GitObjectsTests.fs" />
+    <Compile Include="GitIndexTests.fs" />
     <Compile Include="CommandInit.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

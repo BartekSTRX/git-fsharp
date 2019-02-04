@@ -3,7 +3,6 @@
 open System.Text
 open Xunit
 open GitLib
-open Utils
 
 [<Fact>]
 let ``Parse a commit without parents`` () =
@@ -17,9 +16,29 @@ first test commit
     let result = Commits.parseCommit commitBytes
 
     match result with
-    | Ok { Tree = Sha1 treeId; Author = { Name = authorName } } -> 
+    | Ok { Tree = Sha1 treeId; Author = { Name = authorName }; Parents = [] } -> 
         Assert.Equal("e6ed838ae8ebdc206381a819c87c8fdf9e58ea10", treeId)
         Assert.Equal("Bartłomiej Kołodziejczyk", authorName)
+    | Ok _ -> failwith "incorrect commit parents"
     | Error reason -> failwith reason
 
-    
+
+[<Fact>]
+let ``Parse a commit with one parent`` () =
+    let commitStr = @"tree 2fb593a7fe61740f89c408af7a84a1b85f0b1c95
+parent 504b00c3b4fe52270904541cb6dd84cbd2a67e02
+author Bartłomiej Kołodziejczyk <bartek.kol93@gmail.com> 1549300263 +0100
+committer Bartłomiej Kołodziejczyk <bartek.kol93@gmail.com> 1549300263 +0100
+
+second commit
+"
+    let commitBytes = Encoding.UTF8.GetBytes commitStr
+    let result = Commits.parseCommit commitBytes
+
+    match result with
+    | Ok { Tree = Sha1 treeId; Author = { Name = authorName }; Parents = [ Sha1 parent ] } -> 
+        Assert.Equal("2fb593a7fe61740f89c408af7a84a1b85f0b1c95", treeId)
+        Assert.Equal("Bartłomiej Kołodziejczyk", authorName)
+        Assert.Equal("504b00c3b4fe52270904541cb6dd84cbd2a67e02", parent)
+    | Ok _ -> failwith "incorrect commit parents"
+    | Error reason -> failwith reason

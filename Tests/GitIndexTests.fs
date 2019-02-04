@@ -1,18 +1,7 @@
-module ModelsTests
+module GitIndexTests
 
-open System
-open System.Text
 open Xunit
 open GitLib
-
-
-//[<Fact>]
-//let ``Hash blob object`` () =
-//    let rootDir = Directory.GetCurrentDirectory()
-//    let path = Path.Combine("TestData", "SampleTextFile.txt")
-
-//    Commands.hashObject rootDir rootDir path false
-//    Assert.Equal("26896bbf9c17fd5475973450ec83f7d8d84575bb", hash)
 
 
 [<Fact>]
@@ -64,22 +53,26 @@ let ``Traverse index and convert it into tree structure `` () =
                 Hash = Sha1 "80000000000000000000" }
         ]
     }
-    let tree = GitIndexes.getTree index
+    let tree = MakeTree.getTree index
 
     let expectedTree = 
-        IndexSubTreeModel [
+        IndexTreeModel [
             IndexBlobModel(Mode100644, Sha1 "10000000000000000000", "aaa")
             IndexBlobModel(Mode100644, Sha1 "20000000000000000000", "bbb")
-            IndexSubTreeModel [
+            IndexSubTreeModel([
                 IndexBlobModel(Mode100644, Sha1 "30000000000000000000", "cccc")
                 IndexBlobModel(Mode100644, Sha1 "40000000000000000000", "dddd")
-                IndexSubTreeModel [ IndexBlobModel(Mode100644, Sha1 "50000000000000000000", "wwww") ]
-                IndexSubTreeModel [ IndexBlobModel(Mode100644, Sha1 "60000000000000000000", "zzzz") ]
-            ]
-            IndexSubTreeModel [
+                IndexSubTreeModel([ 
+                    IndexBlobModel(Mode100644, Sha1 "50000000000000000000", "wwww")
+                ], "ggggg")
+                IndexSubTreeModel([ 
+                    IndexBlobModel(Mode100644, Sha1 "60000000000000000000", "zzzz") 
+                ], "hhhhh")
+            ], "ffff")
+            IndexSubTreeModel ([
                 IndexBlobModel(Mode100644, Sha1 "70000000000000000000", "xxxx")
                 IndexBlobModel(Mode100644, Sha1 "80000000000000000000", "yyyy")
-            ]
-        ]
+            ], "hhhh")
+        ] 
 
     Assert.Equal(expectedTree, tree)
