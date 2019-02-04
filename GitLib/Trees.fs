@@ -51,6 +51,21 @@ module Trees =
         | Ok entries -> Ok { TreeEntries = (entries |> List.rev) }
         | Error reason -> Error reason
 
+    let serializeTree ({ TreeEntries = entries }: Tree): byte[] =
+        let serializeEntry (TreeEntry(mode, hash, path)) = 
+            let modeAndPathBytes = 
+                ((IndexEntryModes.toStr mode), path, Convert.ToChar(0)) 
+                |||> sprintf "%s %s%c"
+                |> Encoding.UTF8.GetBytes
+            let hashBytes = hash |> Hash.toByteArray
+            Array.concat [modeAndPathBytes; hashBytes]
+        entries 
+        |> Seq.ofList 
+        |> Seq.map serializeEntry 
+        |> Seq.concat 
+        |> Seq.toArray
+
+
     let formatTree ({ TreeEntries = entries }: Tree) : string = 
         let modeToEntryType = function
             | Mode100644 | Mode100755 | Mode120000 -> "blob"

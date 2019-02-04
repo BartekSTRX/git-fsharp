@@ -13,8 +13,8 @@
     </Content>
     <Compile Include="GitObjectsTests.fs" />
     <Compile Include="GitIndexTests.fs" />
+    <Compile Include="MakeTreeTests.fs" />
     <Compile Include="CommandInit.fs" />
-    <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
