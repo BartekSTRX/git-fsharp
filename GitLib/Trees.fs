@@ -59,10 +59,10 @@ module Trees =
                 |> Encoding.UTF8.GetBytes
             let hashBytes = hash |> Hash.toByteArray
             Array.concat [modeAndPathBytes; hashBytes]
-        entries 
-        |> Seq.ofList 
-        |> Seq.map serializeEntry 
-        |> Seq.concat 
+        entries
+        |> Seq.ofList
+        |> Seq.map serializeEntry
+        |> Seq.concat
         |> Seq.toArray
 
 
@@ -73,6 +73,9 @@ module Trees =
         let formatEntry (TreeEntry(mode, Sha1 hash, path)) =
             let modeStr = mode |> IndexEntryModes.toStr
             let typeStr = mode |> modeToEntryType
-            sprintf "%s %s %s\t%s\n" modeStr typeStr hash path
-        let formatedEntries = entries |> List.map formatEntry
-        String.Join("", formatedEntries)
+            sprintf "%s %s %s\t%s" modeStr typeStr hash path
+        let formatedEntries = 
+            entries 
+            |> List.sortBy (fun (TreeEntry(_, _, path)) -> path)
+            |> List.map formatEntry
+        String.Join("\n", formatedEntries)

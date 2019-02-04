@@ -1,6 +1,5 @@
 ﻿open GitLib
 open GitLib.Commands
-open System
 
 [<EntryPoint>]
 let main argv =
@@ -30,12 +29,10 @@ let main argv =
     //let dir = Directory.GetCurrentDirectory()
     let dir = "C:\Users\LAPPEK4\Documents\heh2"
 
-    Commands.catFiles dir "-p" "504b00c3b4fe52270904541cb6dd84cbd2a67e02"
+    Commands.catFiles dir "-p" "7b6ad422b933f250c8ae38f5e213385aefc55226"
 
     //Commands.lsFiles dir LsFileFormat.Default
     //Commands.updateIndexAdd dir dir (CacheInfo("100644", "8d5c3f86d71f9d9265b5b47a3b019cfed9cc46a7", "ggggf.txt"))
-
-    Console.ReadLine() |> ignore
 
     let argsList = argv |> List.ofArray
 

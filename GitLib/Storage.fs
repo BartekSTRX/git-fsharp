@@ -1,5 +1,26 @@
 ﻿namespace GitLib
 
+module Compression = 
+    open System.IO
+    open System.IO.Compression
+    open Ionic.Zlib
+
+    let decompressStream (stream: Stream) : byte[] =
+        use gzipStream = new ZlibStream(stream, CompressionMode.Decompress)
+        use resultStream = new MemoryStream()
+        gzipStream.CopyTo(resultStream)
+        resultStream.ToArray()
+
+    let decompressArray (bytes: byte[]) : byte[] =
+        use sourceStream = new MemoryStream(bytes)
+        decompressStream sourceStream
+
+    let compressToStream (bytes: byte[]) : Stream =
+        use memoryStream = new MemoryStream(bytes)
+        use gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
+        gzipStream :> Stream
+    
+
 type ObjectFormat = Deflated | Wrapped | Content
 
 type ReadObject = {
@@ -9,14 +30,6 @@ type ReadObject = {
 
 module Storage =
     open System.IO
-    open System.IO.Compression
-    open Ionic.Zlib
-
-    let private readDecompressed (stream: FileStream) : byte[] =
-        use gzipStream = new ZlibStream(stream, CompressionMode.Decompress)
-        use memoryStream = new MemoryStream()
-        gzipStream.CopyTo(memoryStream)
-        memoryStream.ToArray()
 
     let private readObjectLoose (rootDir: string) (objectId: Sha1) =
         let id1, id2 = Hash.split objectId
@@ -27,15 +40,14 @@ module Storage =
     // no support for packfiles for now
     let readObject (rootDir: string) (objectId: Sha1) (*(format: ObjectFormat)*) = 
         let (fileStream, format) = readObjectLoose rootDir objectId
-        let content = readDecompressed fileStream
+        let content = Compression.decompressStream fileStream
         { Format = format; Content = content }
 
     let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
         let id1, id2 = Hash.split objectId
         let path = Path.Combine(rootDir, ".git", "objects", id1, id2)
 
-        use memoryStream = new MemoryStream(content)
-        use gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
+        use gzipStream = Compression.compressToStream content
 
         let fileInfo = new FileInfo(path)
         fileInfo.Directory.Create()

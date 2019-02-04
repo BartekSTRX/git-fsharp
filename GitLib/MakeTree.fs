@@ -42,7 +42,11 @@ module MakeTree =
         |> IndexTreeModel
 
 
-    let hashTree = Trees.formatTree >> Encoding.UTF8.GetBytes >> Hash.sha1Bytes
+    let hashTree = 
+        Trees.serializeTree 
+        >> (fun c -> { ObjectType = Tree; Object = c }) 
+        >> GitObjects.wrap
+        >> Hash.sha1Bytes
 
     let createTreeObjects (IndexTreeModel(modelEntries)) =
         let rec traverseModel (model: IndexTreeModelEntry) : TreeEntry * Tree list =
