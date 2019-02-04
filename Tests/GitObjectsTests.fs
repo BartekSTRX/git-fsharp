@@ -17,7 +17,9 @@ first test commit
     let result = Commits.parseCommit commitBytes
 
     match result with
-    | Ok commit -> true
+    | Ok { Tree = Sha1 treeId; Author = { Name = authorName } } -> 
+        Assert.Equal("e6ed838ae8ebdc206381a819c87c8fdf9e58ea10", treeId)
+        Assert.Equal("Bartłomiej Kołodziejczyk", authorName)
     | Error reason -> failwith reason
 
     

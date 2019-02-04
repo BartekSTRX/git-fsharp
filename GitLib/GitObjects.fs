@@ -165,10 +165,12 @@ module Commits =
 
     let private commitParser = 
         let createUserData (n: char list) (e: char list) t (tz: option<char * char[]>) =
+            let name = new string(n |> Array.ofList) 
+            let email = new string(e |> Array.ofList)
             let formatTimezone = Option.map (fun ((sign, offset)) -> new string([| yield sign; yield! offset |]))
             { 
-                Name = new string(n |> Array.ofList); 
-                Email = new string(e |> Array.ofList); 
+                Name = name.Trim()
+                Email = email.Trim(); 
                 DateSeconds = t; 
                 DateTimeZone = formatTimezone tz
             }
