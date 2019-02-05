@@ -42,3 +42,28 @@ second commit
         Assert.Equal("504b00c3b4fe52270904541cb6dd84cbd2a67e02", parent)
     | Ok _ -> failwith "incorrect commit parents"
     | Error reason -> failwith reason
+
+
+[<Fact>]
+let ``Commit - serialize and parse`` () = 
+    let commit = {
+        Tree = Sha1 "ff16a9c9ed2a7b2364bfe91397cb699f7e1584fa";
+        Parents = [Sha1 "54de7fa00021984548f57a080e95aed0950bd7f9"];
+        Author = {
+            Name = "ab";
+            Email = "b@da";
+            Date = Some { DateSeconds = 2L; DateTimeZone = "+1000" }
+        };
+        Commiter = {
+            Name = "a";
+            Email = "da@bd";
+            Date = None
+        };
+        Message = "db";
+    }
+
+    let serialized = commit |> Commits.serializeCommit
+    let result = serialized |> Commits.parseCommit
+    match result with 
+    | Ok deserializedCommit -> commit = deserializedCommit
+    | Error reason -> failwith reason

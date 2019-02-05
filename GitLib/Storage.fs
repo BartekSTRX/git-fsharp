@@ -61,9 +61,9 @@ module Storage =
         use fileStream = indexPath |> File.OpenRead
         use memoryStream = new MemoryStream()
         fileStream.CopyTo(memoryStream)
-        memoryStream.ToArray() |> GitIndexes.parse
+        memoryStream.ToArray() |> GitIndexes.parseIndex
 
     let writeIndex (rootDir: string) (index: GitIndex) = 
         use fileStream = rootDir |> getIndexPath |> File.OpenWrite
-        let bytes = index |> GitIndexes.serialize
+        let bytes = index |> GitIndexes.serializeIndex
         fileStream.Write(bytes, 0, bytes.Length)

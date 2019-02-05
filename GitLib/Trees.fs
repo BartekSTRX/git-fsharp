@@ -31,7 +31,7 @@ module Trees =
                 let encodedMode = 
                     Array.sub bytes 0 firstSpace
                     |> Encoding.UTF8.GetString
-                    |> IndexEntryModes.parse
+                    |> IndexEntryModes.fromStr
                 let encodedPath = 
                     Array.sub bytes (firstSpace + 1)  (firstNull - (firstSpace + 1))
                     |> Encoding.UTF8.GetString

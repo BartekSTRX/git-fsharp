@@ -128,7 +128,7 @@ module Commands =
 
             let! newEntry = result {
                 let! objectId = Hash.parse hash
-                let! entryMode = IndexEntryModes.parse mode
+                let! entryMode = IndexEntryModes.fromStr mode
                 let newEntry = GitIndexEntry.Create fileInfo entryMode objectId fileRelativePath
                 return newEntry
             }

@@ -46,14 +46,48 @@ let generateTreeEntry : Gen<TreeEntry> =
     let createEntry m s p = TreeEntry(m, s, p)
     Gen.map3 createEntry modeGenerator generateSha1 generateNonemptyString
 
+
+let generateEmail : Gen<string> =
+    Gen.map2 
+        (fun username domain -> sprintf "%s@%s" username domain)
+        generateNonemptyString
+        generateNonemptyString
+
+let generateDateWithTz : Gen<DateWithTimeZone> =
+    Gen.map2
+        (fun d tz -> { DateSeconds = d; DateTimeZone = tz })
+        Arb.generate<int64>
+        (["+1000"; "-0030"] |> Gen.elements)
+
+let generateUserData : Gen<CommitUserData> =
+        let createUserData n e d =
+            { Name = n; Email = e; Date = d }
+        Gen.map3
+            createUserData 
+            generateNonemptyString 
+            generateEmail
+            (generateDateWithTz |> Gen.optionOf)
+
+let generateCommit : Gen<Commit> = 
+    let createCommit t ps a c m =
+        { Tree = t; Parents = ps; Author = a; Commiter = c; Message = m}
+    Gen.map5 
+        createCommit 
+        generateSha1 
+        (Gen.listOf generateSha1) 
+        generateUserData 
+        generateUserData 
+        generateNonemptyString
+
 type TreeGenerator = 
-    //static member TreeEntry() = Arb.fromGen(generateTreeEntry)
     static member Tree() = 
         generateTreeEntry 
         |> Gen.nonEmptyListOf 
         |> Gen.map (fun es -> { TreeEntries = es })
         |> Arb.fromGen
 
+type CommitGenerator = 
+    static member Commit() = Arb.fromGen(generateCommit)
 
 [<Property>]
 let ``ObjectType - toStr and parse`` (object: ObjectType) = 
@@ -87,7 +121,7 @@ type GitIndexArb =
 
 [<Property( Arbitrary=[| typeof<GitIndexArb> |] )>]
 let ``GitIndex - serialize and parse`` (index: GitIndex) = 
-    let result = index |> GitIndexes.serialize |> GitIndexes.parse
+    let result = index |> GitIndexes.serializeIndex |> GitIndexes.parseIndex
     match result with
     | Ok deserializedIndex -> index = deserializedIndex
     | Error _ -> false
@@ -99,4 +133,13 @@ let ``Tree - serialize to bytes and parse`` (tree: Tree) =
     let result = serialized |> Trees.parseTree
     match result with
     | Ok deserializedTree -> tree = deserializedTree
+    | Error _ -> false
+
+
+[<Property(Arbitrary=[| typeof<CommitGenerator> |])>]
+let ``Commit - serialize and parse`` (commit: Commit) = 
+    let serialized = commit |> Commits.serializeCommit
+    let result = serialized |> Commits.parseCommit
+    match result with 
+    | Ok deserializedCommit -> commit = deserializedCommit
     | Error _ -> false

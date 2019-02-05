@@ -7,7 +7,7 @@ type IndexEntryMode =
     | Mode040000 // directory
 
 module IndexEntryModes =
-    let parse = function
+    let fromStr = function
         | "100644" -> Ok Mode100644
         | "100755" -> Ok Mode100755
         | "120000" -> Ok Mode120000

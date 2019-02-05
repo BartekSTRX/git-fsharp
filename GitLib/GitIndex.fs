@@ -202,7 +202,7 @@ module GitIndexes =
             Array.create nullPaddingLength 0uy
         |] |> Array.concat
 
-    let parse (input: byte[]): Result<GitIndex, string> = 
+    let parseIndex (input: byte[]): Result<GitIndex, string> = 
         let parseSignature (reader: BinaryReader): Result<string, string> = 
             let signature = reader.ReadBytes(4) |> Encoding.UTF8.GetString
             match signature with
@@ -232,7 +232,7 @@ module GitIndexes =
             return { Entries = entries }
         }
 
-    let serialize ({ Entries = entries }: GitIndex) : byte[] =
+    let serializeIndex ({ Entries = entries }: GitIndex) : byte[] =
         use outputStream = new MemoryStream()
         use writer = new BinaryWriter(outputStream)
 

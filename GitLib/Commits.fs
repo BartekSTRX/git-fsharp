@@ -1,11 +1,11 @@
 ﻿namespace GitLib
 
+type DateWithTimeZone = { DateSeconds: int64; DateTimeZone: string }
 
 type CommitUserData = {
     Name: string
     Email: string
-    DateSeconds: int64 option
-    DateTimeZone: string option
+    Date: DateWithTimeZone option
 }
 
 type Commit = {
@@ -17,21 +17,25 @@ type Commit = {
 }
 
 module Commits = 
+    open System
     open System.Text
     open Utils
     open FParsec
 
     let private commitParser = 
-        let createUserData (n: char list) (e: char list) t (tz: option<char * char[]>) =
+        let createTime t (tz: char * char[]) =
+            let formatTimezone (sign, offset) = new string([| yield sign; yield! offset |])
+            { DateSeconds = t; DateTimeZone = (formatTimezone tz) }
+
+        let createUserData (n: char list) (e: char list) date =
             let name = new string(n |> Array.ofList) 
             let email = new string(e |> Array.ofList)
-            let formatTimezone = Option.map (fun ((sign, offset)) -> new string([| yield sign; yield! offset |]))
             { 
                 Name = name.Trim()
-                Email = email.Trim(); 
-                DateSeconds = t; 
-                DateTimeZone = formatTimezone tz
+                Email = email.Trim()
+                Date = date
             }
+        
         let createCommit treeHash parents author committer message = 
             result {
                 let! hash = new string(treeHash:char[]) |> Hash.parse
@@ -53,10 +57,13 @@ module Commits =
         let parentParser = pstring "parent" >>. pchar ' ' >>. sha1Parser .>> newline
         let parentsParser = many parentParser
         let nameParser = many <| noneOf ['<'; '\n']
-        let emailParser = pstring "<" >>. (many <| noneOf ['>'; '\n']) .>> pstring ">" .>> pchar ' '
-        let timeParser = pint64 .>> pchar ' ' |> opt
-        let timezoneParser = tuple2 (anyOf ['+'; '-']) (parray 4 digit) .>> newline |> opt
-        let userDataParser = pipe4 nameParser emailParser timeParser timezoneParser createUserData
+        let emailParser = pstring "<" >>. (many <| noneOf ['>'; '\n']) .>> pstring ">"
+        
+        let timeZoneParser = tuple2 (anyOf ['+'; '-']) (parray 4 digit)
+        let timeWithTimeZoneParser = 
+            pchar ' ' >>. (pipe2 (pint64 .>> pchar ' ') timeZoneParser createTime) |> opt
+
+        let userDataParser = (pipe3 nameParser emailParser timeWithTimeZoneParser createUserData) .>> newline
         let authorParser = pstring "author" >>. userDataParser
         let commiterParser = pstring "committer" >>. userDataParser
         let messageParser = (many anyChar) .>> eof
@@ -72,5 +79,30 @@ module Commits =
         | Success(result, _state, _position) -> result
         | Failure(errorStr, _error, _state) -> Result.Error errorStr
 
-    let formatCommit commit = 
-        ""
+
+    let formatCommit ({ 
+            Tree = Sha1 tree; Parents = parents; 
+            Author = author; Commiter = committer; Message = msg 
+        }: Commit) = 
+
+        let formatUserData (user: CommitUserData) = 
+            [ 
+                Some(user.Name)
+                Some(sprintf "<%s>"  user.Email)
+                user.Date |> Option.map (fun d -> (sprintf "%i %s" (d.DateSeconds) (d.DateTimeZone)))
+            ]
+            |> Seq.filter Option.isSome
+            |> Seq.map Option.get
+            |> (fun xs -> String.Join(' ', xs))
+        
+        let lines = 
+            seq {
+                yield (sprintf "tree %s" tree)
+                yield! (parents |> List.map (fun (Sha1 p) -> sprintf "parent %s" p))
+                yield (sprintf "author %s" (formatUserData author))
+                yield (sprintf "committer %s" (formatUserData committer))
+                yield msg
+            }
+        String.Join("\n", lines) 
+
+    let serializeCommit = formatCommit >> Encoding.UTF8.GetBytes

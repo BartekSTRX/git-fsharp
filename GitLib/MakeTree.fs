@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Text
 
 
 type IndexTreeModelEntry = 
@@ -65,5 +64,4 @@ module MakeTree =
             IndexSubTreeModel(modelEntries, "") 
             |> traverseModel
         trees
-
-                
+      
