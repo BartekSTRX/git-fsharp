@@ -5,8 +5,8 @@ open System.IO
 
 
 type IndexTreeModelEntry = 
-|   IndexBlobModel of IndexEntryMode * Sha1 * fileName:string
-|   IndexSubTreeModel of IndexTreeModelEntry list * subDirName:string
+| IndexBlobModel of IndexEntryMode * Sha1 * fileName:string
+| IndexSubTreeModel of IndexTreeModelEntry list * subDirName:string
 
 type IndexTreeModel = IndexTreeModel of IndexTreeModelEntry list
 
@@ -47,7 +47,7 @@ module MakeTree =
         >> GitObjects.wrap
         >> Hash.sha1Bytes
 
-    let createTreeObjects (IndexTreeModel(modelEntries)) =
+    let createTreeObjects (IndexTreeModel(modelEntries)) : Tree list =
         let rec traverseModel (model: IndexTreeModelEntry) : TreeEntry * Tree list =
             match model with
             | IndexBlobModel(mode, hash, fileName) -> 
@@ -61,7 +61,7 @@ module MakeTree =
                 let allTrees = List.concat (seq { yield [newTree]; yield! createdTrees })
                 newEntry, allTrees
         let _rootEntry, trees = 
-            IndexSubTreeModel(modelEntries, "") 
+            IndexSubTreeModel(modelEntries, "")
             |> traverseModel
         trees
       

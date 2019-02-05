@@ -102,8 +102,8 @@ module Commands =
     // ls-files should list files from index and form working tree
     let lsFiles (rootDir: string) (format: LsFileFormat) =
         rootDir
-        |> Storage.getIndexPath 
         |> Storage.readIndex 
+        |> GitIndexes.parseIndex
         |> Result.map(fun index -> formatEntries index.Entries format)
         |> Result.map (fun xs -> String.Join("", xs) )
         |> (function 
@@ -119,10 +119,9 @@ module Commands =
         let fileRelativePath = Path.GetRelativePath(rootDir, filePath)
 
         let newIndex = result {
-            let indexPath = Storage.getIndexPath rootDir
             let! oldIndex = 
-                if File.Exists indexPath then 
-                    Storage.readIndex indexPath
+                if Storage.indexExists rootDir then 
+                    rootDir |> Storage.readIndex |> GitIndexes.parseIndex
                 else
                     Ok GitIndex.Empty
 
@@ -137,12 +136,11 @@ module Commands =
         }
         
         match newIndex with 
-        | Ok index -> Storage.writeIndex rootDir index
+        | Ok index -> index |> GitIndexes.serializeIndex |> Storage.writeIndex rootDir
         | Error reason -> printf "%s" reason
 
 
     let writeTree (rootDir: string) =
-        let indexPath = Storage.getIndexPath rootDir
-        let index = Storage.readIndex indexPath
-        let treeModel = Result.map MakeTree.getTree index
+        let index = Storage.readIndex rootDir
+        let treeModel = index |> GitIndexes.parseIndex |> Result.map MakeTree.getTree
         ()

@@ -55,15 +55,16 @@ module Storage =
         gzipStream.CopyTo(fileStream)
 
 
-    let getIndexPath rootDir = Path.Combine(rootDir, ".git", "index")
+    let private getIndexPath rootDir = Path.Combine(rootDir, ".git", "index")
 
-    let readIndex (indexPath: string) =
-        use fileStream = indexPath |> File.OpenRead
+    let indexExists = getIndexPath >> File.Exists
+    
+    let readIndex (rootDir: string) : byte[] =
+        use fileStream = rootDir |> getIndexPath |> File.OpenRead
         use memoryStream = new MemoryStream()
         fileStream.CopyTo(memoryStream)
-        memoryStream.ToArray() |> GitIndexes.parseIndex
+        memoryStream.ToArray()
 
-    let writeIndex (rootDir: string) (index: GitIndex) = 
+    let writeIndex (rootDir: string) (indexBytes: byte[]) = 
         use fileStream = rootDir |> getIndexPath |> File.OpenWrite
-        let bytes = index |> GitIndexes.serializeIndex
-        fileStream.Write(bytes, 0, bytes.Length)
+        fileStream.Write(indexBytes, 0, indexBytes.Length)
