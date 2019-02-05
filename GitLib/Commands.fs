@@ -141,6 +141,22 @@ module Commands =
 
 
     let writeTree (rootDir: string) =
-        let index = Storage.readIndex rootDir
-        let treeModel = index |> GitIndexes.parseIndex |> Result.map MakeTree.getTree
-        ()
+        let trees = result {
+            let! index = rootDir |> Storage.readIndex |> GitIndexes.parseIndex
+            let treeModel = MakeTree.getTree index
+            let trees = MakeTree.createTreeObjects treeModel
+            
+            let objects = 
+                trees 
+                |> List.map (fun t -> 
+                    let bytes = Trees.serializeTree t
+                    let hash = MakeTree.hashTree t
+                    (hash, bytes))
+            return objects
+        }
+
+        match trees with 
+        | Ok tlist -> 
+            tlist |> List.iter (fun (h, b) -> Storage.writeObjectContent rootDir h b)
+        | Error reason -> 
+            failwith reason
