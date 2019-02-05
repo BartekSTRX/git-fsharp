@@ -5,7 +5,7 @@ open System.IO
 
 
 type IndexTreeModelEntry = 
-| IndexBlobModel of IndexEntryMode * Sha1 * fileName:string
+| IndexBlobModel of UnixFileMode * Sha1 * fileName:string
 | IndexSubTreeModel of IndexTreeModelEntry list * subDirName:string
 
 type IndexTreeModel = IndexTreeModel of IndexTreeModelEntry list

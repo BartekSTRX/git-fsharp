@@ -42,7 +42,7 @@ let generateIndexEntry : Gen<GitIndexEntry> =
         generateNonemptyString
 
 let generateTreeEntry : Gen<TreeEntry> = 
-    let modeGenerator = Arb.Default.Derive<IndexEntryMode>().Generator
+    let modeGenerator = Arb.Default.Derive<UnixFileMode>().Generator
     let createEntry m s p = TreeEntry(m, s, p)
     Gen.map3 createEntry modeGenerator generateSha1 generateNonemptyString
 
@@ -90,7 +90,7 @@ type CommitGenerator =
     static member Commit() = Arb.fromGen(generateCommit)
 
 [<Property>]
-let ``ObjectType - toStr and parse`` (object: ObjectType) = 
+let ``ObjectType - toStr and fromStr`` (object: ObjectType) = 
     let result = object |> ObjectTypes.toStr  |> ObjectTypes.fromStr
     match result with 
     | Ok t -> t = object

@@ -1,12 +1,12 @@
 ﻿namespace GitLib
 
-type IndexEntryMode = 
+type UnixFileMode = 
     | Mode100644 // normal file
     | Mode100755 // executable
     | Mode120000 // symbolic link
     | Mode040000 // directory
 
-module IndexEntryModes =
+module UnixFileModes =
     let fromStr = function
         | "100644" -> Ok Mode100644
         | "100755" -> Ok Mode100755

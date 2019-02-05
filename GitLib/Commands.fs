@@ -87,7 +87,7 @@ module Commands =
             Flags = { Stage = stage }; 
             RelativeFilePath = path 
             } = entry
-        sprintf "%s %s %i %s\n" (IndexEntryModes.toStr mode) id stage path
+        sprintf "%s %s %i %s\n" (UnixFileModes.toStr mode) id stage path
 
     let private formatEntryDefault ({ RelativeFilePath = path }) =
         sprintf "%s\n" path
@@ -127,7 +127,7 @@ module Commands =
 
             let! newEntry = result {
                 let! objectId = Hash.parse hash
-                let! entryMode = IndexEntryModes.fromStr mode
+                let! entryMode = UnixFileModes.fromStr mode
                 let newEntry = GitIndexEntry.Create fileInfo entryMode objectId fileRelativePath
                 return newEntry
             }

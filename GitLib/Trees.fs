@@ -3,7 +3,7 @@
 
 type TreeEntryType = BlobEntry | SubTreeEntry
 
-type TreeEntry = TreeEntry of IndexEntryMode * Sha1 * path:string
+type TreeEntry = TreeEntry of UnixFileMode * Sha1 * path:string
 with 
     member this.EntryType = 
         match this with
@@ -31,7 +31,7 @@ module Trees =
                 let encodedMode = 
                     Array.sub bytes 0 firstSpace
                     |> Encoding.UTF8.GetString
-                    |> IndexEntryModes.fromStr
+                    |> UnixFileModes.fromStr
                 let encodedPath = 
                     Array.sub bytes (firstSpace + 1)  (firstNull - (firstSpace + 1))
                     |> Encoding.UTF8.GetString
@@ -54,7 +54,7 @@ module Trees =
     let serializeTree ({ TreeEntries = entries }: Tree): byte[] =
         let serializeEntry (TreeEntry(mode, hash, path)) = 
             let modeAndPathBytes = 
-                ((IndexEntryModes.toStr mode), path, Convert.ToChar(0)) 
+                ((UnixFileModes.toStr mode), path, Convert.ToChar(0)) 
                 |||> sprintf "%s %s%c"
                 |> Encoding.UTF8.GetBytes
             let hashBytes = hash |> Hash.toByteArray
@@ -71,7 +71,7 @@ module Trees =
             | Mode100644 | Mode100755 | Mode120000 -> "blob"
             | Mode040000 -> "tree"
         let formatEntry (TreeEntry(mode, Sha1 hash, path)) =
-            let modeStr = mode |> IndexEntryModes.toStr
+            let modeStr = mode |> UnixFileModes.toStr
             let typeStr = mode |> modeToEntryType
             sprintf "%s %s %s\t%s" modeStr typeStr hash path
         let formatedEntries = 

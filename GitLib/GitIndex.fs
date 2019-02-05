@@ -19,7 +19,7 @@ type GitIndexEntry = {
     Mtime: byte[]
     Device: uint32
     Inode: uint32
-    Mode: IndexEntryMode
+    Mode: UnixFileMode
     UserId: uint32
     GroupId: uint32
     FileSize: uint32
