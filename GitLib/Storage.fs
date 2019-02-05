@@ -31,9 +31,13 @@ type ReadObject = {
 module Storage =
     open System.IO
 
-    let private readObjectLoose (rootDir: string) (objectId: Sha1) =
+    let private getObjectPath rootDir objectId = 
         let id1, id2 = Hash.split objectId
         let objectPath = Path.Combine(rootDir, ".git", "objects", id1, id2)
+        objectPath
+
+    let private readObjectLoose (rootDir: string) (objectId: Sha1) =
+        let objectPath = getObjectPath rootDir objectId
         let fileStream = File.OpenRead(objectPath)
         (fileStream, Deflated)
         
@@ -44,12 +48,11 @@ module Storage =
         { Format = format; Content = content }
 
     let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
-        let id1, id2 = Hash.split objectId
-        let path = Path.Combine(rootDir, ".git", "objects", id1, id2)
+        let objectPath = getObjectPath rootDir objectId
 
         use gzipStream = Compression.compressToStream content
 
-        let fileInfo = new FileInfo(path)
+        let fileInfo = new FileInfo(objectPath)
         fileInfo.Directory.Create()
         use fileStream = File.OpenWrite(fileInfo.FullName)
         gzipStream.CopyTo(fileStream)
