@@ -5,7 +5,7 @@ type DateWithTimeZone = { DateSeconds: int64; DateTimeZone: string }
 type CommitUserData = {
     Name: string
     Email: string
-    Date: DateWithTimeZone option
+    Date: DateWithTimeZone
 }
 
 type Commit = {
@@ -61,7 +61,7 @@ module Commits =
         
         let timeZoneParser = tuple2 (anyOf ['+'; '-']) (parray 4 digit)
         let timeWithTimeZoneParser = 
-            pchar ' ' >>. (pipe2 (pint64 .>> pchar ' ') timeZoneParser createTime) |> opt
+            pchar ' ' >>. (pipe2 (pint64 .>> pchar ' ') timeZoneParser createTime)
 
         let userDataParser = (pipe3 nameParser emailParser timeWithTimeZoneParser createUserData) .>> newline
         let authorParser = pstring "author" >>. userDataParser
@@ -85,15 +85,8 @@ module Commits =
             Author = author; Commiter = committer; Message = msg 
         }: Commit) = 
 
-        let formatUserData (user: CommitUserData) = 
-            [ 
-                Some(user.Name)
-                Some(sprintf "<%s>"  user.Email)
-                user.Date |> Option.map (fun d -> (sprintf "%i %s" (d.DateSeconds) (d.DateTimeZone)))
-            ]
-            |> Seq.filter Option.isSome
-            |> Seq.map Option.get
-            |> (fun xs -> String.Join(' ', xs))
+        let formatUserData ({ Name = name; Email = email; Date = date }) = 
+            sprintf "%s <%s> %i %s" name email (date.DateSeconds) (date.DateTimeZone)
         
         let lines = 
             seq {

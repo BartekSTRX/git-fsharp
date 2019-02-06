@@ -1,7 +1,6 @@
 ﻿namespace GitLib
 
 open System
-open System.IO
 
 
 type IndexTreeModelEntry = 
@@ -20,7 +19,7 @@ module MakeTree =
         let rec traverseIndex (entriesWithPaths: (string list * GitIndexEntry) list): IndexTreeModelEntry list =
             let subTrees, blobs = entriesWithPaths |> List.partition (fun (ps, _) -> ps.Length > 1)
 
-            let thisSubTreeBlobs = 
+            let thisSubTreeBlobs =
                 blobs 
                 |> List.map (fun ([filename], indexEntry) -> 
                     IndexBlobModel(indexEntry.Mode, indexEntry.Hash, filename))

@@ -35,7 +35,7 @@ let main argv =
 
     let argsList = argv |> List.ofArray
 
-    match argsList with 
+    match argsList with
     | ["init"] -> 
         Commands.init(dir)
     | ["hash-object"; relativePath] -> 
