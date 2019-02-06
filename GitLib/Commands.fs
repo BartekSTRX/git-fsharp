@@ -69,8 +69,8 @@ module Commands =
                 | "-p" -> 
                     match object.ObjectType with
                     | Blob -> object.Object |> Encoding.UTF8.GetString |> Ok
-                    | Tree -> object.Object |> Trees.parseTree |> Result.map Trees.formatTree
-                    | Commit -> object.Object |> Commits.parseCommit |> Result.map Commits.formatCommit
+                    | Tree -> object |> Trees.parseTree |> Result.map Trees.formatTree
+                    | Commit -> object |> Commits.parseCommit |> Result.map Commits.formatCommit
                 | _ -> Error "incorrect cat-files option"
             return res
         } |> (function 
@@ -149,8 +149,10 @@ module Commands =
             let objects = 
                 trees 
                 |> List.map (fun t -> 
-                    let bytes = Trees.serializeTree t
-                    let hash = MakeTree.hashTree t
+                    let bytes = 
+                        Trees.serializeTree t
+                        |> GitObjects.wrap
+                    let hash = Hash.sha1Bytes bytes 
                     (hash, bytes))
             return objects
         }

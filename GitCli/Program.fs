@@ -15,7 +15,6 @@ let main argv =
     // TODO
     // git mktree -- creates a tree from stdin
     // git ls-tree -- seems to work exactly like hash-object -p for trees
-    // write-tree
     // read-tree --prefix=bak
     // commit-tree
     // ls-tree
@@ -29,7 +28,7 @@ let main argv =
     //let dir = Directory.GetCurrentDirectory()
     let dir = "C:\Users\LAPPEK4\Documents\heh2"
 
-    Commands.catFiles dir "-p" "7b6ad422b933f250c8ae38f5e213385aefc55226"
+    Commands.writeTree dir
 
     //Commands.lsFiles dir LsFileFormat.Default
     //Commands.updateIndexAdd dir dir (CacheInfo("100644", "8d5c3f86d71f9d9265b5b47a3b019cfed9cc46a7", "ggggf.txt"))
@@ -52,7 +51,7 @@ let main argv =
     | ["update-index"; "--add"; "--cacheinfo"; mode; hash; filePath] ->
         Commands.updateIndexAdd dir dir (CacheInfo(mode, hash, filePath))
     | ["write-tree"] ->
-        ()
+        Commands.writeTree dir
     | _ -> printf "incorrect args %A" argv
 
     0

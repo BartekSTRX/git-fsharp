@@ -14,7 +14,7 @@ type IndexTreeModel = IndexTreeModel of IndexTreeModelEntry list
 module MakeTree =
     let getTree { Entries = entries } : IndexTreeModel = 
         let splitPath (path: string) = 
-            path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
+            path.Split([| '\\'; '/' |], StringSplitOptions.RemoveEmptyEntries)
             |> List.ofArray
 
         let rec traverseIndex (entriesWithPaths: (string list * GitIndexEntry) list): IndexTreeModelEntry list =
@@ -43,7 +43,6 @@ module MakeTree =
 
     let hashTree = 
         Trees.serializeTree 
-        >> (fun c -> { ObjectType = Tree; Object = c }) 
         >> GitObjects.wrap
         >> Hash.sha1Bytes
 

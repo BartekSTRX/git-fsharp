@@ -71,7 +71,7 @@ module Commits =
         let commitParser = pipe5 treeParser parentsParser authorParser commiterParser messageParser createCommit
         commitParser
 
-    let parseCommit (content: byte[]): Result<Commit, string> =
+    let parseCommit ({ ObjectType =  _typ; Object = content}): Result<Commit, string> =
         let contentStr = content |> Encoding.UTF8.GetString
         let result = run commitParser contentStr
 
@@ -105,4 +105,7 @@ module Commits =
             }
         String.Join("\n", lines) 
 
-    let serializeCommit = formatCommit >> Encoding.UTF8.GetBytes
+    let serializeCommit = 
+        formatCommit 
+        >> Encoding.UTF8.GetBytes 
+        >> (fun bytes -> { ObjectType = Commit; Object = bytes} )

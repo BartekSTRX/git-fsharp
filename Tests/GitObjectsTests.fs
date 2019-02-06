@@ -13,7 +13,7 @@ committer Bartłomiej Kołodziejczyk <bartek.kol93@gmail.com> 1548609402 +0100
 first test commit
 "
     let commitBytes = Encoding.UTF8.GetBytes commitStr
-    let result = Commits.parseCommit commitBytes
+    let result = Commits.parseCommit { ObjectType = Commit; Object = commitBytes }
 
     match result with
     | Ok { Tree = Sha1 treeId; Author = { Name = authorName }; Parents = [] } -> 
@@ -33,7 +33,7 @@ committer Bartłomiej Kołodziejczyk <bartek.kol93@gmail.com> 1549300263 +0100
 second commit
 "
     let commitBytes = Encoding.UTF8.GetBytes commitStr
-    let result = Commits.parseCommit commitBytes
+    let result = Commits.parseCommit { ObjectType = Commit; Object = commitBytes }
 
     match result with
     | Ok { Tree = Sha1 treeId; Author = { Name = authorName }; Parents = [ Sha1 parent ] } -> 

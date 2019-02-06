@@ -16,8 +16,8 @@ module Compression =
         decompressStream sourceStream
 
     let compressToStream (bytes: byte[]) : Stream =
-        use memoryStream = new MemoryStream(bytes)
-        use gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
+        let memoryStream = new MemoryStream(bytes)
+        let gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
         gzipStream :> Stream
     
 
@@ -49,11 +49,11 @@ module Storage =
 
     let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
         let objectPath = getObjectPath rootDir objectId
+        let fileInfo = new FileInfo(objectPath)
+
+        fileInfo.Directory.Create()
 
         use gzipStream = Compression.compressToStream content
-
-        let fileInfo = new FileInfo(objectPath)
-        fileInfo.Directory.Create()
         use fileStream = File.OpenWrite(fileInfo.FullName)
         gzipStream.CopyTo(fileStream)
 

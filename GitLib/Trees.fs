@@ -18,7 +18,7 @@ module Trees =
     open System
     open System.Text
 
-    let parseTree (content: byte[]) : Result<Tree, string> = 
+    let parseTree ({ ObjectType = _typ; Object = content }) : Result<Tree, string> = 
         let rec internalParse (bytes: byte[]) (parsed: TreeEntry list): Result<TreeEntry list, string> =
             match bytes with
             | [| |] -> Ok parsed
@@ -51,7 +51,7 @@ module Trees =
         | Ok entries -> Ok { TreeEntries = (entries |> List.rev) }
         | Error reason -> Error reason
 
-    let serializeTree ({ TreeEntries = entries }: Tree): byte[] =
+    let serializeTree ({ TreeEntries = entries }: Tree): GitObject =
         let serializeEntry (TreeEntry(mode, hash, path)) = 
             let modeAndPathBytes = 
                 ((UnixFileModes.toStr mode), path, Convert.ToChar(0)) 
@@ -59,11 +59,13 @@ module Trees =
                 |> Encoding.UTF8.GetBytes
             let hashBytes = hash |> Hash.toByteArray
             Array.concat [modeAndPathBytes; hashBytes]
-        entries
-        |> Seq.ofList
-        |> Seq.map serializeEntry
-        |> Seq.concat
-        |> Seq.toArray
+        let content = 
+            entries
+            |> Seq.ofList
+            |> Seq.map serializeEntry
+            |> Seq.concat
+            |> Seq.toArray
+        { ObjectType = Tree; Object = content }
 
 
     let formatTree ({ TreeEntries = entries }: Tree) : string = 
