@@ -16,7 +16,7 @@ namespace TestsIntegration
         }
 
         [Fact]
-        public void Test1()
+        public void InitRepository()
         {
             Commands.init(repoPath);
 
