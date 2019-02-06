@@ -6,6 +6,9 @@ module Commands =
     open System.Text
     open Utils
 
+    let getUnixTime() = 
+        DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+
     let init (rootDir: string) : unit =
         let gitDir = Path.Combine(rootDir, ".git")
 
@@ -162,3 +165,34 @@ module Commands =
             tlist |> List.iter (fun (h, b) -> Storage.writeObjectContent rootDir h b)
         | Error reason -> 
             failwith reason
+
+    let commitTree (rootDir: string) (treeObjectId: string) (parents: string list) (message: string): unit = 
+        let userData = { 
+            Name = "Git User";
+            Email = "user@git.org";
+            Date = { DateSeconds = getUnixTime(); DateTimeZone = "+0100" } 
+        }
+
+        let newCommit = result {
+            let! tree = treeObjectId |> Hash.parse
+            let! parentCommits = parents |> List.map Hash.parse |> traverse
+
+            let commit: Commit = {
+                Tree = tree
+                Parents = parentCommits
+                Author = userData
+                Commiter = userData
+                Message = message
+            }
+
+            let commitBytes = 
+                commit
+                |> Commits.serializeCommit
+                |> GitObjects.wrap
+            let commitHash = commitBytes |> Hash.sha1Bytes
+
+            return (commitHash, commitBytes)
+        }
+        match newCommit with 
+        | Ok (hash, bytes) -> Storage.writeObjectContent rootDir hash bytes
+        | Error reason -> failwith reason
