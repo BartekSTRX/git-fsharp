@@ -66,7 +66,7 @@ let generateUserData : Gen<CommitUserData> =
             createUserData 
             generateNonemptyString 
             generateEmail
-            (generateDateWithTz |> Gen.optionOf)
+            generateDateWithTz
 
 let generateCommit : Gen<Commit> = 
     let createCommit t ps a c m =

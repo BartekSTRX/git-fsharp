@@ -52,12 +52,12 @@ let ``Commit - serialize and parse`` () =
         Author = {
             Name = "ab";
             Email = "b@da";
-            Date = Some { DateSeconds = 2L; DateTimeZone = "+1000" }
+            Date = { DateSeconds = 2L; DateTimeZone = "+1000" }
         };
         Commiter = {
             Name = "a";
             Email = "da@bd";
-            Date = None
+            Date = { DateSeconds = 2L; DateTimeZone = "+1000" }
         };
         Message = "db";
     }

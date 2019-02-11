@@ -71,3 +71,19 @@ module Storage =
     let writeIndex (rootDir: string) (indexBytes: byte[]) = 
         use fileStream = rootDir |> getIndexPath |> File.OpenWrite
         fileStream.Write(indexBytes, 0, indexBytes.Length)
+
+module References =
+    open System.IO
+    
+    let private getHeadPath rootDir head = 
+        Path.Combine(rootDir, ".git", "refs", "heads", head)
+
+    let readReference (rootDir: string) (ref: string): string =
+        getHeadPath rootDir ref |> File.ReadAllText
+
+    let writeReference (rootDir: string) (ref: string) (value: string): unit=
+        let path = getHeadPath rootDir ref
+        File.WriteAllText(path, value)
+
+    let deleteReference (rootDir: string) (ref: string): unit = 
+        getHeadPath rootDir ref |> File.Delete

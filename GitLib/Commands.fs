@@ -196,3 +196,28 @@ module Commands =
         match newCommit with 
         | Ok (hash, bytes) -> Storage.writeObjectContent rootDir hash bytes
         | Error reason -> failwith reason
+
+
+    type UpdateRefArgs = 
+    | CreateOrUpdate of ref:string * newValue:string
+    | UpdateSafe of ref:string * newValue:string * oldValue:string
+    | Delete of ref:string
+    | DeleteSafe of ref:string * oldValue:string
+
+    let updateRef (rootDir: string) (args: UpdateRefArgs): unit = 
+        match args with
+        | Delete ref -> References.deleteReference rootDir ref
+        | DeleteSafe(ref, oldValue) ->
+            let value = References.readReference rootDir ref
+            if value = oldValue then
+                References.deleteReference rootDir ref
+            else
+                failwith "ref has different value than specified"
+        | CreateOrUpdate(ref, newValue) ->
+            References.writeReference rootDir ref newValue
+        | UpdateSafe(ref, newValue, oldValue) ->
+            let value = References.readReference rootDir ref
+            if value = oldValue then
+                References.writeReference rootDir ref newValue
+            else
+                failwith "ref has different value than specified"

@@ -52,6 +52,14 @@ let main argv =
         Commands.updateIndexAdd dir dir (CacheInfo(mode, hash, filePath))
     | ["write-tree"] ->
         Commands.writeTree dir
+    | ["update-ref"; "-d"; ref] ->
+        Commands.updateRef dir (Delete ref)
+    | ["update-ref"; ref; newValue] ->
+        Commands.updateRef dir (CreateOrUpdate(ref, newValue))
+    | ["update-ref"; "-d"; ref; oldValue] ->
+        Commands.updateRef dir (DeleteSafe(ref, oldValue))
+    | ["update-ref"; ref; newValue; oldValue] ->
+        Commands.updateRef dir (UpdateSafe(ref, newValue, oldValue))
     | _ -> printf "incorrect args %A" argv
 
     0
