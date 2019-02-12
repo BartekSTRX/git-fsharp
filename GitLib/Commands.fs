@@ -221,3 +221,18 @@ module Commands =
                 References.writeReference rootDir ref newValue
             else
                 failwith "ref has different value than specified"
+
+    type SymbolicRefArgs = 
+    | Create of name:string * ref:string
+    | Read of name:string
+    | Delete of name:string
+
+    let symbolicRef (rootDir: string) (args: SymbolicRefArgs): unit = 
+        match args with 
+        | Create(name, ref) -> 
+            References.writeReference rootDir name (sprintf "ref: %s" ref)
+        | Read(name) -> 
+            let refText = References.readReference rootDir name
+            printf "%s" (refText.Substring(5))
+        | Delete(name) -> 
+            References.deleteReference rootDir name

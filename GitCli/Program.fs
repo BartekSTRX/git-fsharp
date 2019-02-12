@@ -27,9 +27,7 @@ let main argv =
 
     //let dir = Directory.GetCurrentDirectory()
     let dir = "C:\Users\LAPPEK4\Documents\heh2"
-
-    Commands.writeTree dir
-
+    
     //Commands.lsFiles dir LsFileFormat.Default
     //Commands.updateIndexAdd dir dir (CacheInfo("100644", "8d5c3f86d71f9d9265b5b47a3b019cfed9cc46a7", "ggggf.txt"))
 
@@ -60,6 +58,12 @@ let main argv =
         Commands.updateRef dir (DeleteSafe(ref, oldValue))
     | ["update-ref"; ref; newValue; oldValue] ->
         Commands.updateRef dir (UpdateSafe(ref, newValue, oldValue))
+    | ["symbolic-ref"; "-d"; name] ->
+        Commands.symbolifRef dir (Delete(name))
+    | ["symbolic-ref"; name; ref] ->
+        Commands.symbolifRef dir (Create(name, ref))
+    | ["symbolic-ref"; name] ->
+        Commands.symbolifRef dir (Read(name))
     | _ -> printf "incorrect args %A" argv
 
     0

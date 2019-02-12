@@ -75,15 +75,15 @@ module Storage =
 module References =
     open System.IO
     
-    let private getHeadPath rootDir head = 
-        Path.Combine(rootDir, ".git", "refs", "heads", head)
+    let private getRefPath rootDir ref = 
+        Path.Combine(rootDir, ".git", ref)
 
     let readReference (rootDir: string) (ref: string): string =
-        getHeadPath rootDir ref |> File.ReadAllText
+        getRefPath rootDir ref |> File.ReadAllText
 
     let writeReference (rootDir: string) (ref: string) (value: string): unit=
-        let path = getHeadPath rootDir ref
+        let path = getRefPath rootDir ref
         File.WriteAllText(path, value)
 
     let deleteReference (rootDir: string) (ref: string): unit = 
-        getHeadPath rootDir ref |> File.Delete
+        getRefPath rootDir ref |> File.Delete
