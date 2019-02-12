@@ -143,3 +143,16 @@ let ``Commit - serialize and parse`` (commit: Commit) =
     match result with 
     | Ok deserializedCommit -> commit = deserializedCommit
     | Error _ -> false
+
+
+type SymRef = SymRef of string
+type SymRefArb =
+    static member String() = Arb.fromGen(generateNonemptyString |> Gen.map SymRef)
+
+[<Property(Arbitrary=[| typeof<SymRefArb> |])>]
+let ``Format and parse symbolic ref`` (SymRef ref) =
+    let deserialized = 
+        ref
+        |> SymbolicReferences.formatSymRef
+        |> SymbolicReferences.parseSymRef
+    deserialized = ref

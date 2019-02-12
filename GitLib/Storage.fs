@@ -19,14 +19,6 @@ module Compression =
         let memoryStream = new MemoryStream(bytes)
         let gzipStream = new ZlibStream(memoryStream, CompressionMode.Compress)
         gzipStream :> Stream
-    
-
-type ObjectFormat = Deflated | Wrapped | Content
-
-type ReadObject = {
-    Format: ObjectFormat
-    Content: byte[]
-}
 
 module Storage =
     open System.IO
@@ -39,18 +31,17 @@ module Storage =
     let private readObjectLoose (rootDir: string) (objectId: Sha1) =
         let objectPath = getObjectPath rootDir objectId
         let fileStream = File.OpenRead(objectPath)
-        (fileStream, Deflated)
+        fileStream
         
     // no support for packfiles for now
-    let readObject (rootDir: string) (objectId: Sha1) (*(format: ObjectFormat)*) = 
-        let (fileStream, format) = readObjectLoose rootDir objectId
+    let readObject (rootDir: string) (objectId: Sha1) = 
+        let fileStream = readObjectLoose rootDir objectId
         let content = Compression.decompressStream fileStream
-        { Format = format; Content = content }
+        content
 
     let writeObjectContent (rootDir: string) (objectId: Sha1) (content: byte array) : unit =
         let objectPath = getObjectPath rootDir objectId
         let fileInfo = new FileInfo(objectPath)
-
         fileInfo.Directory.Create()
 
         use gzipStream = Compression.compressToStream content

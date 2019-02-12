@@ -61,7 +61,6 @@ module Commands =
             let! object = 
                 hash
                 |> Storage.readObject rootDir 
-                |> (fun x -> x.Content) 
                 |> GitObjects.unwrap
             let! res = 
                 match option with 
