@@ -11,16 +11,16 @@ let main argv =
     // cat-files -- given hash, returns type, size or content of an object // TODO commits and tags
     // ls-files -- display content of the index // TODO more options, display content of the working-tree
     // update-index -- add a file to the index
+    // commit-tree
+    // update-ref
+    // symbolic-ref
 
     // TODO
     // git mktree -- creates a tree from stdin
     // git ls-tree -- seems to work exactly like hash-object -p for trees
     // read-tree --prefix=bak
-    // commit-tree
     // ls-tree
     // branch?
-    // update-ref
-    // symbolic-ref
     // log
     // git add => git hash-object -w && git update-index
     // git ls-tree VS git cat-file -p <hash of a tree>
@@ -51,19 +51,19 @@ let main argv =
     | ["write-tree"] ->
         Commands.writeTree dir
     | ["update-ref"; "-d"; ref] ->
-        Commands.updateRef dir (Delete ref)
+        Commands.updateRef dir (DeleteRef ref)
     | ["update-ref"; ref; newValue] ->
-        Commands.updateRef dir (CreateOrUpdate(ref, newValue))
+        Commands.updateRef dir (CreateOrUpdateRef(ref, newValue))
     | ["update-ref"; "-d"; ref; oldValue] ->
-        Commands.updateRef dir (DeleteSafe(ref, oldValue))
+        Commands.updateRef dir (DeleteRefSafe(ref, oldValue))
     | ["update-ref"; ref; newValue; oldValue] ->
-        Commands.updateRef dir (UpdateSafe(ref, newValue, oldValue))
+        Commands.updateRef dir (UpdateRefSafe(ref, newValue, oldValue))
     | ["symbolic-ref"; "-d"; name] ->
-        Commands.symbolifRef dir (Delete(name))
+        Commands.symbolicRef dir (DeleteSymRef(name))
     | ["symbolic-ref"; name; ref] ->
-        Commands.symbolifRef dir (Create(name, ref))
+        Commands.symbolicRef dir (CreateSymRef(name, ref))
     | ["symbolic-ref"; name] ->
-        Commands.symbolifRef dir (Read(name))
+        Commands.symbolicRef dir (ReadSymRef(name))
     | _ -> printf "incorrect args %A" argv
 
     0

@@ -199,23 +199,23 @@ module Commands =
 
 
     type UpdateRefArgs = 
-    | CreateOrUpdate of ref:string * newValue:string
-    | UpdateSafe of ref:string * newValue:string * oldValue:string
-    | Delete of ref:string
-    | DeleteSafe of ref:string * oldValue:string
+    | CreateOrUpdateRef of ref:string * newValue:string
+    | UpdateRefSafe of ref:string * newValue:string * oldValue:string
+    | DeleteRef of ref:string
+    | DeleteRefSafe of ref:string * oldValue:string
 
     let updateRef (rootDir: string) (args: UpdateRefArgs): unit = 
         match args with
-        | Delete ref -> References.deleteReference rootDir ref
-        | DeleteSafe(ref, oldValue) ->
+        | DeleteRef ref -> References.deleteReference rootDir ref
+        | DeleteRefSafe(ref, oldValue) ->
             let value = References.readReference rootDir ref
             if value = oldValue then
                 References.deleteReference rootDir ref
             else
                 failwith "ref has different value than specified"
-        | CreateOrUpdate(ref, newValue) ->
+        | CreateOrUpdateRef(ref, newValue) ->
             References.writeReference rootDir ref newValue
-        | UpdateSafe(ref, newValue, oldValue) ->
+        | UpdateRefSafe(ref, newValue, oldValue) ->
             let value = References.readReference rootDir ref
             if value = oldValue then
                 References.writeReference rootDir ref newValue
@@ -223,16 +223,16 @@ module Commands =
                 failwith "ref has different value than specified"
 
     type SymbolicRefArgs = 
-    | Create of name:string * ref:string
-    | Read of name:string
-    | Delete of name:string
+    | CreateSymRef of name:string * ref:string
+    | ReadSymRef of name:string
+    | DeleteSymRef of name:string
 
     let symbolicRef (rootDir: string) (args: SymbolicRefArgs): unit = 
         match args with 
-        | Create(name, ref) -> 
+        | CreateSymRef(name, ref) -> 
             References.writeReference rootDir name (sprintf "ref: %s" ref)
-        | Read(name) -> 
+        | ReadSymRef(name) -> 
             let refText = References.readReference rootDir name
             printf "%s" (refText.Substring(5))
-        | Delete(name) -> 
+        | DeleteSymRef(name) -> 
             References.deleteReference rootDir name
