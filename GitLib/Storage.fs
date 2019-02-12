@@ -72,7 +72,7 @@ module Storage =
         use fileStream = rootDir |> getIndexPath |> File.OpenWrite
         fileStream.Write(indexBytes, 0, indexBytes.Length)
 
-module References =
+module ReferencesStorage =
     open System.IO
     
     let private getRefPath rootDir ref = 

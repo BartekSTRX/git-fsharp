@@ -35,10 +35,8 @@ module Commands =
         let configPath = Path.Combine(gitDir, "config")
         File.WriteAllText(configPath, defaultConfig, Encoding.UTF8)
 
-        let defaultHead = "ref: refs/heads/master\n"
-        let headPath = Path.Combine(gitDir, "HEAD")
-        File.WriteAllText(headPath, defaultHead, Encoding.UTF8)
-
+        SymbolicReferences.formatSymRef "refs/heads/master"
+        |> ReferencesStorage.writeReference rootDir "HEAD"
 
     let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (write: bool) : unit = 
         let objectPath = Path.Combine(currentDir, relativePath)
@@ -206,19 +204,19 @@ module Commands =
 
     let updateRef (rootDir: string) (args: UpdateRefArgs): unit = 
         match args with
-        | DeleteRef ref -> References.deleteReference rootDir ref
+        | DeleteRef ref -> ReferencesStorage.deleteReference rootDir ref
         | DeleteRefSafe(ref, oldValue) ->
-            let value = References.readReference rootDir ref
+            let value = ReferencesStorage.readReference rootDir ref
             if value = oldValue then
-                References.deleteReference rootDir ref
+                ReferencesStorage.deleteReference rootDir ref
             else
                 failwith "ref has different value than specified"
         | CreateOrUpdateRef(ref, newValue) ->
-            References.writeReference rootDir ref newValue
+            ReferencesStorage.writeReference rootDir ref newValue
         | UpdateRefSafe(ref, newValue, oldValue) ->
-            let value = References.readReference rootDir ref
+            let value = ReferencesStorage.readReference rootDir ref
             if value = oldValue then
-                References.writeReference rootDir ref newValue
+                ReferencesStorage.writeReference rootDir ref newValue
             else
                 failwith "ref has different value than specified"
 
@@ -229,10 +227,13 @@ module Commands =
 
     let symbolicRef (rootDir: string) (args: SymbolicRefArgs): unit = 
         match args with 
-        | CreateSymRef(name, ref) -> 
-            References.writeReference rootDir name (sprintf "ref: %s" ref)
+        | CreateSymRef(name, ref) ->
+            ref
+            |> SymbolicReferences.formatSymRef
+            |> ReferencesStorage.writeReference rootDir name 
         | ReadSymRef(name) -> 
-            let refText = References.readReference rootDir name
-            printf "%s" (refText.Substring(5))
+            ReferencesStorage.readReference rootDir name
+            |> SymbolicReferences.parseSymRef
+            |> printf "%s" 
         | DeleteSymRef(name) -> 
-            References.deleteReference rootDir name
+            ReferencesStorage.deleteReference rootDir name

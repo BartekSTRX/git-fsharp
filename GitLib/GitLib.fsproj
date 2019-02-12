@@ -8,6 +8,7 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Hash.fs" />
     <Compile Include="Storage.fs" />
+    <Compile Include="References.fs" />
     <Compile Include="ObjectTypes.fs" />
     <Compile Include="UnixFileModes.fs" />
     <Compile Include="GitObjects.fs" />
