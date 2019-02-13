@@ -59,7 +59,7 @@ let generateDateWithTz : Gen<DateWithTimeZone> =
         Arb.generate<int64>
         (["+1000"; "-0030"] |> Gen.elements)
 
-let generateUserData : Gen<CommitUserData> =
+let generateUserData : Gen<UserData> =
         let createUserData n e d =
             { Name = n; Email = e; Date = d }
         Gen.map3
@@ -79,6 +79,19 @@ let generateCommit : Gen<Commit> =
         generateUserData 
         generateNonemptyString
 
+let generateTag : Gen<Tag> =
+    let createTag oid ot n tt m = 
+        { ObjectId = oid; TaggedObjectType = ot; Name = n; TaggerData = tt; TagMessage = m }
+    let objectTypeGenerator = Arb.Default.Derive<ObjectType>().Generator
+    Gen.map5
+        createTag
+        generateSha1
+        objectTypeGenerator
+        generateNonemptyString
+        generateUserData
+        generateNonemptyString
+
+
 type TreeGenerator = 
     static member Tree() = 
         generateTreeEntry 
@@ -88,6 +101,9 @@ type TreeGenerator =
 
 type CommitGenerator = 
     static member Commit() = Arb.fromGen(generateCommit)
+
+type TagGenerator = 
+    static member Tag() = Arb.fromGen(generateTag)
 
 [<Property>]
 let ``ObjectType - toStr and fromStr`` (object: ObjectType) = 
@@ -145,6 +161,15 @@ let ``Commit - serialize and parse`` (commit: Commit) =
     | Error _ -> false
 
 
+[<Property(Arbitrary=[| typeof<TagGenerator> |])>]
+let ``Tag - serialize and parse`` (tag: Tag) = 
+    let serialized = tag |> Tags.serializeTag
+    let result = serialized |> Tags.parseTag
+    match result with 
+    | Ok deserializedTag -> tag = deserializedTag
+    | Error _ -> false
+
+
 type SymRef = SymRef of string
 type SymRefArb =
     static member String() = Arb.fromGen(generateNonemptyString |> Gen.map SymRef)
@@ -153,6 +178,6 @@ type SymRefArb =
 let ``Format and parse symbolic ref`` (SymRef ref) =
     let deserialized = 
         ref
-        |> SymbolicReferences.formatSymRef
+        |> SymbolicReferences.serializeSymRef
         |> SymbolicReferences.parseSymRef
     deserialized = ref

@@ -16,6 +16,8 @@ let main argv =
     // symbolic-ref
 
     // TODO
+    // tag -- create tags
+    // show-ref --- display object id tag refers to
     // git mktree -- creates a tree from stdin
     // git ls-tree -- seems to work exactly like hash-object -p for trees
     // read-tree --prefix=bak
