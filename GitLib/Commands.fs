@@ -35,7 +35,7 @@ module Commands =
         let configPath = Path.Combine(gitDir, "config")
         File.WriteAllText(configPath, defaultConfig, Encoding.UTF8)
 
-        SymbolicReferences.formatSymRef "refs/heads/master"
+        SymbolicReferences.serializeSymRef "refs/heads/master"
         |> ReferencesStorage.writeReference rootDir "HEAD"
 
     let hashObject (rootDir: string) (currentDir: string) (relativePath: string) (write: bool) : unit = 
@@ -228,7 +228,7 @@ module Commands =
         match args with 
         | CreateSymRef(name, ref) ->
             ref
-            |> SymbolicReferences.formatSymRef
+            |> SymbolicReferences.serializeSymRef
             |> ReferencesStorage.writeReference rootDir name 
         | ReadSymRef(name) -> 
             ReferencesStorage.readReference rootDir name

@@ -4,7 +4,7 @@
 // ref: refs/heads/master
 module SymbolicReferences =
 
-    let formatSymRef (ref: string) = sprintf "ref: %s" ref
+    let serializeSymRef (ref: string) = sprintf "ref: %s" ref
 
     let parseSymRef (refText: string) = refText.Substring(5)
 
