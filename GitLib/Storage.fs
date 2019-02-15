@@ -72,9 +72,13 @@ module ReferencesStorage =
     let readReference (rootDir: string) (ref: string): string =
         getRefPath rootDir ref |> File.ReadAllText
 
-    let writeReference (rootDir: string) (ref: string) (value: string): unit=
+    let writeReference (rootDir: string) (ref: string) (hash: string): unit=
         let path = getRefPath rootDir ref
-        File.WriteAllText(path, value)
+        File.WriteAllText(path, hash)
 
     let deleteReference (rootDir: string) (ref: string): unit = 
         getRefPath rootDir ref |> File.Delete
+
+
+    let writeTagReference (rootDir: string) (tagName: string) =
+        writeReference rootDir (Path.Combine("refs", "tags", tagName))

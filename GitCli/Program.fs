@@ -30,6 +30,7 @@ let main argv =
     //let dir = Directory.GetCurrentDirectory()
     let dir = "C:\Users\LAPPEK4\Documents\heh2"
     
+    //Commands.createTag dir "olololoo" "555" "20dddaf1ebb41118f3fc9bd960d34ccf5257e6db"
     //Commands.lsFiles dir LsFileFormat.Default
     //Commands.updateIndexAdd dir dir (CacheInfo("100644", "8d5c3f86d71f9d9265b5b47a3b019cfed9cc46a7", "ggggf.txt"))
 
@@ -52,6 +53,8 @@ let main argv =
         Commands.updateIndexAdd dir dir (CacheInfo(mode, hash, filePath))
     | ["write-tree"] ->
         Commands.writeTree dir
+    | ["tag"; "-a"; "-m"; message; name; objectId] ->
+        Commands.createTag dir message name objectId
     | ["update-ref"; "-d"; ref] ->
         Commands.updateRef dir (DeleteRef ref)
     | ["update-ref"; ref; newValue] ->

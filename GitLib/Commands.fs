@@ -9,6 +9,13 @@ module Commands =
     let getUnixTime() = 
         DateTimeOffset.UtcNow.ToUnixTimeSeconds()
 
+    let getDefaultUserData() =
+        { 
+            Name = "Git User";
+            Email = "user@git.org";
+            Date = { DateSeconds = getUnixTime(); DateTimeZone = "+0100" } 
+        }
+
     let init (rootDir: string) : unit =
         let gitDir = Path.Combine(rootDir, ".git")
 
@@ -164,11 +171,7 @@ module Commands =
             failwith reason
 
     let commitTree (rootDir: string) (treeObjectId: string) (parents: string list) (message: string): unit = 
-        let userData = { 
-            Name = "Git User";
-            Email = "user@git.org";
-            Date = { DateSeconds = getUnixTime(); DateTimeZone = "+0100" } 
-        }
+        let userData = getDefaultUserData()
 
         let newCommit = result {
             let! tree = treeObjectId |> Hash.parse
@@ -236,3 +239,38 @@ module Commands =
             |> printf "%s" 
         | DeleteSymRef(name) -> 
             ReferencesStorage.deleteReference rootDir name
+
+
+    let createTag (rootDir: string) message name objectId = 
+        result {
+            let! oid = Hash.parse objectId
+
+            let! taggedObject = 
+                Storage.readObject rootDir oid 
+                |> GitObjects.unwrap 
+        
+            let tag = 
+                {
+                    ObjectId = oid
+                    TaggedObjectType = taggedObject.ObjectType
+                    Name = name
+                    TaggerData = getDefaultUserData()
+                    TagMessage = message
+                }
+
+            let tagBytes = 
+                tag
+                |> Tags.serializeTag
+                |> GitObjects.wrap
+            let tagHash = tagBytes |> Hash.sha1Bytes
+
+            Storage.writeObjectContent rootDir tagHash tagBytes
+
+            let (Sha1 objectHash) = tagHash
+            ReferencesStorage.writeTagReference rootDir name objectHash
+            
+            return ()
+        } 
+        |> (function
+            | Ok _ -> ()
+            | Error reason -> failwith reason)
