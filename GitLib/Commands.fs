@@ -274,3 +274,23 @@ module Commands =
         |> (function
             | Ok _ -> ()
             | Error reason -> failwith reason)
+
+    let deleteTag (rootDir: string) tagname = 
+        result {
+            let! tagHash = 
+                ReferencesStorage.readTagReference rootDir tagname
+                |> Hash.parse
+
+            Storage.deleteObject rootDir tagHash
+            ReferencesStorage.deleteTagReference rootDir tagname
+
+            return ()
+        }
+        |> (function
+            | Ok _ -> ()
+            | Error reason -> failwith reason)
+
+    let listTags (rootDir: string) = 
+        let tags = ReferencesStorage.readAllTagReferences rootDir
+        String.Join("\n", tags) |> printf "%s"
+        

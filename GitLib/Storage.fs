@@ -48,6 +48,14 @@ module Storage =
         use fileStream = File.OpenWrite(fileInfo.FullName)
         gzipStream.CopyTo(fileStream)
 
+    let deleteObject (rootDir: string) (objectId: Sha1) : unit = 
+        let objectPath = getObjectPath rootDir objectId
+        File.Delete(objectPath)
+
+        let dirPath = Path.GetDirectoryName(objectPath)
+        if Directory.GetFiles(dirPath).Length = 0 then
+            Directory.Delete(dirPath)
+
 
     let private getIndexPath rootDir = Path.Combine(rootDir, ".git", "index")
 
@@ -82,3 +90,14 @@ module ReferencesStorage =
 
     let writeTagReference (rootDir: string) (tagName: string) =
         writeReference rootDir (Path.Combine("refs", "tags", tagName))
+
+    let readTagReference (rootDir: string) (tagName: string) =
+        readReference rootDir (Path.Combine("refs", "tags", tagName))
+
+    let readAllTagReferences (rootDir: string) =
+        Path.Combine(rootDir, ".git", "refs", "tags")
+        |> Directory.GetFiles
+        |> Array.map Path.GetFileName
+
+    let deleteTagReference (rootDir: string) (tagName: string) =
+        deleteReference rootDir (Path.Combine("refs", "tags", tagName))
