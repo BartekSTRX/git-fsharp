@@ -61,7 +61,6 @@ module Commands =
         let (Sha1 objectId) = hash
         objectId |> printf "%s"
 
-    // for now works only with blobs and trees
     let catFiles (rootDir: string) (option: string) (objectId: string) : unit = 
         result {
             let! hash = objectId |> Hash.parse
@@ -78,6 +77,11 @@ module Commands =
                     | Blob -> object.Object |> Encoding.UTF8.GetString |> Ok
                     | Tree -> object |> Trees.parseTree |> Result.map Trees.formatTree
                     | Commit -> object |> Commits.parseCommit |> Result.map Commits.formatCommit
+                    | Tag -> 
+                        result {
+                            let! tag = object |> Tags.parseTag
+                            return Tags.formatTag tag
+                        }
                 | _ -> Error "incorrect cat-files option"
             return res
         } |> (function 
@@ -163,7 +167,6 @@ module Commands =
                     (hash, bytes))
             return objects
         }
-
         match trees with 
         | Ok tlist -> 
             tlist |> List.iter (fun (h, b) -> Storage.writeObjectContent rootDir h b)

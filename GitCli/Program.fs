@@ -9,9 +9,10 @@ let main argv =
     // hash-object -- calculate hash of a file
     // hash-object -w -- save file as blob in /objects
     // cat-files -- given hash, returns type, size or content of an object
-    // ls-files -- display content of the index // TODO more options, display content of the working-tree
-    // update-index -- add a file to the index
-    // commit-tree
+        // ls-files -- display content of the index // TODO more options, display content of the working-tree
+        // update-index -- add a file to the index
+    // write-tree -- create tree object from index content
+    // commit-tree -- create commit object
     // update-ref
     // symbolic-ref
     // tag -- create, list, delete tags
@@ -57,6 +58,9 @@ let main argv =
         Commands.updateIndexAdd dir dir (CacheInfo(mode, hash, filePath))
     | ["write-tree"] ->
         Commands.writeTree dir
+    | ["commit-tree"; treeId; "-p"; parentId; "-m"; message] ->     
+        // TODO add support for multiple parents, possibly with active patterns on -p parentId args
+        Commands.commitTree dir treeId [parentId] message
     // tags
     | ["tag"] | ["tag"; "-l"] ->
         Commands.listTags dir
