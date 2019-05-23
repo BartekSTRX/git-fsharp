@@ -11,8 +11,10 @@ namespace TestsIntegration
 
         public InitTests()
         {
+            var settings = Settings.GetFromFile();
+
             var repoDirName = "testRepo";
-            repoPath = Path.Combine(Config.DirPath, repoDirName);
+            repoPath = Path.Combine(settings.TestDir, repoDirName);
         }
 
         [Fact]
