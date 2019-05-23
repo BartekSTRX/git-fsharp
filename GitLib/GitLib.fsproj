@@ -12,6 +12,7 @@
     <Compile Include="ObjectTypes.fs" />
     <Compile Include="UnixFileModes.fs" />
     <Compile Include="GitObjects.fs" />
+    <Compile Include="Blobs.fs" />
     <Compile Include="Trees.fs" />
     <Compile Include="UsersData.fs" />
     <Compile Include="Commits.fs" />

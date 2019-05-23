@@ -49,8 +49,11 @@ module Commands =
         let objectPath = Path.Combine(currentDir, relativePath)
 
         let content = File.ReadAllBytes(objectPath)
+        let blob = { Content  = content }
+
         let wrappedObject = 
-            { ObjectType = Blob; Object = content } 
+            blob
+            |> Blobs.serializeBlob 
             |> GitObjects.wrap
 
         let hash = wrappedObject |> Hash.sha1Bytes
@@ -74,14 +77,10 @@ module Commands =
                 | "-s" -> Ok (object.Size |> sprintf "%i")
                 | "-p" -> 
                     match object.ObjectType with
-                    | Blob -> object.Object |> Encoding.UTF8.GetString |> Ok
+                    | Blob -> object |> Blobs.parseBlob |> Result.map Blobs.formatBlob
                     | Tree -> object |> Trees.parseTree |> Result.map Trees.formatTree
                     | Commit -> object |> Commits.parseCommit |> Result.map Commits.formatCommit
-                    | Tag -> 
-                        result {
-                            let! tag = object |> Tags.parseTag
-                            return Tags.formatTag tag
-                        }
+                    | Tag -> object |> Tags.parseTag |> Result.map Tags.formatTag
                 | _ -> Error "incorrect cat-files option"
             return res
         } |> (function 
